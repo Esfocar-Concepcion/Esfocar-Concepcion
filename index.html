@@ -2946,9 +2946,9 @@ document.getElementById('resModal').addEventListener('click',function(e){
 <script>
 window.addEventListener('DOMContentLoaded',function(){
   try{
-    localStorage.setItem('e_dep', JSON.stringify(SDEP));
-    localStorage.setItem('e_esp', JSON.stringify(SESP));
-    localStorage.setItem('e_fun', JSON.stringify(SFUN));
+    if(!localStorage.getItem('e_dep')) localStorage.setItem('e_dep', JSON.stringify(SDEP));
+    if(!localStorage.getItem('e_esp')) localStorage.setItem('e_esp', JSON.stringify(SESP));
+    if(!localStorage.getItem('e_fun')) localStorage.setItem('e_fun', JSON.stringify(SFUN));
     if(!localStorage.getItem('e_pre')) localStorage.setItem('e_pre','[]');
     if(!localStorage.getItem('e_baj')) localStorage.setItem('e_baj','[]');
     if(!localStorage.getItem('e_log')) localStorage.setItem('e_log','[]');
@@ -2956,22 +2956,6 @@ window.addEventListener('DOMContentLoaded',function(){
     if(!localStorage.getItem('e_hesp')) localStorage.setItem('e_hesp','[]');
     if(!localStorage.getItem('e_pbaj')) localStorage.setItem('e_pbaj','[]');
     if(!localStorage.getItem('e_bsf')) localStorage.setItem('e_bsf','[]');
-    if(typeof ld==='function') ld();
-    if(typeof S!=='undefined'){S.user='0507';S.isAdmin=true;}
-    var lw=document.getElementById('loginWrap');
-    var ap=document.getElementById('app');
-    if(lw) lw.style.display='none';
-    if(ap) ap.style.display='block';
-    var f=(S&&S.fun)?S.fun.find(function(x){return x.pin==='0507';}):null;
-    var nm=f?f.nom:'Administrador';
-    var rol=f?f.grado:'Administrador';
-    if(document.getElementById('uAv')) document.getElementById('uAv').textContent=typeof ini==='function'?ini(nm):'AD';
-    if(document.getElementById('uNm')) document.getElementById('uNm').textContent=nm.split(' ').slice(0,2).join(' ');
-    if(document.getElementById('uRol')) document.getElementById('uRol').textContent='👑 '+rol;
-    if(document.getElementById('tBadge')) document.getElementById('tBadge').textContent=rol+' — 0507';
-    if(document.getElementById('sfPin')) document.getElementById('sfPin').textContent='0507';
-    if(typeof buildNav==='function') buildNav();
-    if(typeof nav==='function') nav('dash');
   }catch(e){console.error(e);}
 });
 </script>
