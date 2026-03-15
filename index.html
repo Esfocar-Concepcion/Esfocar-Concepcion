@@ -1,144 +1,179 @@
-// --- BASE DE DATOS ---
-const SDEP=[
-    {id:1, nombre: "SALA TRABAJO GRUPAL"},
-    {id:2, nombre: "ENFERMERÍA"},
-    {id:3, nombre: "GUARDIA"},
-    {id:4, nombre: "SALA COMPUTACIÓN"}
-];
-
-let SESP=[
-    {id:1, cod:"ESF-MUE-001", nom:"MESA DE REUNIÓN CUADRADA", did:1, est:"A", anio:"2026", obs:"Base metálica"},
-    {id:2, cod:"ESF-MUE-002", nom:"SILLA VISITA KYOS", did:1, est:"A", anio:"2026", obs:"Tapizado negro"},
-    {id:3, cod:"ESF-TEC-050", nom:"NOTEBOOK INSTITUCIONAL", did:4, est:"P", anio:"2026", obs:"Prestado a Docencia"}
-];
-
-// --- LÓGICA DE ACCESO (CORREGIDA) ---
-let pinBuf = ""; 
-
-function pN(n) {
-    if(pinBuf.length < 4) {
-        pinBuf += n.toString(); // Guardar como string
-        updPin();
-        document.getElementById('lErr').innerText = ""; // Limpiar error al escribir
-    }
-}
-
-function pD() {
-    pinBuf = "";
-    updPin();
-}
-
-function updPin() {
-    const display = document.getElementById('pinD');
-    // Esto asegura que siempre se vean 4 espacios
-    let visual = pinBuf.split('').join(' ') + " _ _ _ _".substring(pinBuf.length * 2);
-    display.innerText = visual.trim();
-}
-
-function pOk() {
-    // EL PIN ES 1234
-    if(pinBuf === "1234") { 
-        document.getElementById('loginWrap').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        renderNav();
-        go('dash');
-    } else {
-        const errorDiv = document.getElementById('lErr');
-        errorDiv.innerText = "PIN INCORRECTO (" + pinBuf.length + "/4 dígitos)";
-        // Efecto visual de error
-        document.getElementById('pinD').style.borderColor = "#e07070";
-        setTimeout(() => {
-            document.getElementById('pinD').style.borderColor = "#3d5040";
-            pD(); // Reiniciar
-        }, 500);
-    }
-}
-
-// --- NAVEGACIÓN Y RENDERIZADO ---
-function renderNav() {
-    let html = `<div class="nItem" onclick="go('dash')" id="nv-dash">📊 Dashboard</div>`;
-    html += `<div class="nSec">Ubicaciones</div>`;
-    SDEP.forEach(d => {
-        html += `<div class="nItem" onclick="go('dep', ${d.id})" id="nv-dep${d.id}">📍 ${d.nombre}</div>`;
-    });
-    document.getElementById('sbNav').innerHTML = html;
-}
-
-function go(view, id = null) {
-    document.querySelectorAll('.nItem').forEach(i => i.classList.remove('on'));
-    const cnt = document.getElementById('cnt');
-    
-    if(view === 'dash') {
-        const nv = document.getElementById('nv-dash');
-        if(nv) nv.classList.add('on');
-        document.getElementById('tTitle').innerText = "Dashboard General";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>ESFOCAR Inventario 2026</title>
+    <style>
+        /* Estilos base para asegurar que se vea bien en GitHub */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a2420; color: #e8ede9; min-height: 100vh; }
         
-        const stats = {
-            t: SESP.length,
-            a: SESP.filter(e => e.est === 'A').length,
-            p: SESP.filter(e => e.est === 'P').length,
-            b: SESP.filter(e => e.est === 'B').length
-        };
+        #loginWrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .lBox { background: #2d3a30; border-radius: 18px; padding: 40px; width: 330px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .lLogo { font-size: 2rem; font-weight: 900; color: #c8e6cd; margin-bottom: 5px; }
+        .lSub { font-size: .7rem; color: #6a8570; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 2px; }
+        
+        .pinDisplay { background: #141e1a; border: 2px solid #3d5040; border-radius: 10px; padding: 15px; font-size: 1.8rem; 
+                      margin-bottom: 20px; color: #6ab87a; font-family: monospace; letter-spacing: 8px; }
+        
+        .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .pBtn { background: #3d5040; border: none; color: #fff; padding: 20px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1.2rem; }
+        .pBtn:active { background: #6ab87a; }
+        .pDel { background: #4a3030; }
+        .pOk { background: #3a6040; grid-column: span 3; font-size: 1rem; }
+        
+        #app { display: none; }
+        .error { color: #ff6b6b; font-size: 0.8rem; margin-top: 10px; min-height: 1.2em; }
 
-        cnt.innerHTML = `
-            <div class="sGrid">
-                <div class="sCd"><div class="val">${stats.t}</div><div class="lbl">Total Bienes</div></div>
-                <div class="sCd"><div class="val" style="color:#6ab87a">${stats.a}</div><div class="lbl">Activos</div></div>
-                <div class="sCd w"><div class="val">${stats.p}</div><div class="lbl">En Préstamo</div></div>
-                <div class="sCd d"><div class="val">${stats.b}</div><div class="lbl">Bajas</div></div>
+        /* Estructura App */
+        #aWrap { display: flex; height: 100vh; }
+        #sb { width: 260px; background: #1e2d25; border-right: 1px solid #2a3a2e; padding: 20px; }
+        #main { flex: 1; padding: 25px; overflow-y: auto; }
+        .nItem { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; color: #8fb89a; }
+        .nItem:hover, .nItem.on { background: #2d3a30; color: #fff; }
+        .card { background: #1e2d25; padding: 20px; border-radius: 12px; border: 1px solid #2a3a2e; margin-bottom: 20px; }
+        .val { font-size: 2.5rem; font-weight: bold; color: #6ab87a; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; font-size: 0.7rem; color: #6a8570; text-transform: uppercase; padding: 10px; }
+        td { padding: 12px 10px; border-top: 1px solid #2a3a2e; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div id="loginWrap">
+    <div class="lBox">
+        <div class="lLogo">ESFOCAR</div>
+        <div class="lSub">Gestión 2026</div>
+        <div class="pinDisplay" id="pinD">____</div>
+        <div class="pad">
+            <button class="pBtn" onclick="addN(1)">1</button>
+            <button class="pBtn" onclick="addN(2)">2</button>
+            <button class="pBtn" onclick="addN(3)">3</button>
+            <button class="pBtn" onclick="addN(4)">4</button>
+            <button class="pBtn" onclick="addN(5)">5</button>
+            <button class="pBtn" onclick="addN(6)">6</button>
+            <button class="pBtn" onclick="addN(7)">7</button>
+            <button class="pBtn" onclick="addN(8)">8</button>
+            <button class="pBtn" onclick="addN(9)">9</button>
+            <button class="pBtn pDel" onclick="delN()">←</button>
+            <button class="pBtn" onclick="addN(0)">0</button>
+            <button class="pBtn pOk" onclick="validate()">ENTRAR</button>
+        </div>
+        <div class="error" id="msg"></div>
+    </div>
+</div>
+
+<div id="app">
+    <div id="aWrap">
+        <nav id="sb">
+            <h2 style="margin-bottom: 20px; color:#c8e6cd">Menú</h2>
+            <div id="nav">
+                <div class="nItem on" onclick="render('dash')">📊 Dashboard</div>
+                <div class="nItem" onclick="render('inv')">📋 Inventario</div>
             </div>
-            <div class="tWrap">
-                <div class="tHead"><h3>Inventario Reciente</h3></div>
-                <table>
-                    <thead><tr><th>Código</th><th>Nombre</th><th>Ubicación</th><th>Estado</th></tr></thead>
-                    <tbody>${renderTableRows(SESP)}</tbody>
-                </table>
-            </div>`;
-    } else {
-        const dep = SDEP.find(d => d.id === id);
-        const nv = document.getElementById('nv-dep'+id);
-        if(nv) nv.classList.add('on');
-        document.getElementById('tTitle').innerText = dep.nombre;
-        const items = SESP.filter(e => e.did === id);
-        cnt.innerHTML = `
-            <div class="tWrap">
-                <div class="tHead"><h3>Bienes en esta dependencia</h3></div>
-                <table>
-                    <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th></tr></thead>
-                    <tbody>${items.length ? renderTableRows(items) : '<tr><td colspan="3" style="text-align:center; padding:20px;">Sin bienes registrados en esta sala</td></tr>'}</tbody>
-                </table>
-            </div>`;
+            <button onclick="location.reload()" style="margin-top: 20px; background:none; border:1px solid #4a3030; color:#ff6b6b; padding:8px; width:100%; border-radius:5px; cursor:pointer">Cerrar Sesión</button>
+        </nav>
+        <main id="main">
+            <h1 id="viewTitle" style="margin-bottom: 20px;">Dashboard</h1>
+            <div id="content"></div>
+        </main>
+    </div>
+</div>
+
+<script>
+    // Configuración
+    const CORRECT_PIN = "1234";
+    let currentPin = "";
+
+    // Datos simulados
+    const inventario = [
+        { id: "001", nombre: "Escritorio", estado: "Activo" },
+        { id: "002", nombre: "Silla Ergonómica", estado: "Prestado" },
+        { id: "003", nombre: "Notebook", estado: "Activo" }
+    ];
+
+    // Funciones del Teclado
+    function addN(n) {
+        if (currentPin.length < 4) {
+            currentPin += n.toString();
+            updateDisplay();
+            document.getElementById('msg').innerText = "";
+        }
     }
-}
 
-function renderTableRows(data) {
-    return data.map(e => `
-        <tr>
-            <td><strong>${e.cod}</strong></td>
-            <td>${e.nom}</td>
-            <td>${SDEP.find(d => d.id === e.did)?.nombre || 'S/N'}</td>
-            <td><span class="bA st${e.est}">${e.est === 'A' ? 'ACTIVO' : e.est === 'P' ? 'PRÉSTAMO' : 'BAJA'}</span></td>
-        </tr>
-    `).join('');
-}
+    function delN() {
+        currentPin = "";
+        updateDisplay();
+    }
 
-function logout() { location.reload(); }
-function oMdl(id) { document.getElementById(id).classList.add('open'); }
-function cMdl(id) { document.getElementById(id).classList.remove('open'); }
+    function updateDisplay() {
+        const d = document.getElementById('pinD');
+        // Rellena con guiones bajos lo que falte
+        d.innerText = currentPin.padEnd(4, "_");
+    }
 
-function saveEsp() {
-    const nom = document.getElementById('eNom').value;
-    const cod = document.getElementById('eCod').value;
-    const est = document.getElementById('eEst').value;
-    if(!nom || !cod) return alert("Por favor, complete los campos obligatorios.");
+    function validate() {
+        if (currentPin === CORRECT_PIN) {
+            document.getElementById('loginWrap').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            render('dash');
+        } else {
+            document.getElementById('msg').innerText = "PIN INCORRECTO";
+            currentPin = "";
+            updateDisplay();
+            // Efecto de sacudida visual
+            document.getElementById('pinD').style.borderColor = "#ff6b6b";
+            setTimeout(() => document.getElementById('pinD').style.borderColor = "#3d5040", 500);
+        }
+    }
 
-    SESP.unshift({ id: Date.now(), cod, nom, did: 1, est, anio: "2026", obs: "" });
-    cMdl('mEsp');
-    go('dash');
-    document.getElementById('eNom').value = "";
-    document.getElementById('eCod').value = "";
-}
+    // Soporte para teclado físico (Muy importante para GitHub/Web)
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('loginWrap').style.display !== 'none') {
+            if (e.key >= '0' && e.key <= '9') addN(e.key);
+            if (e.key === 'Backspace') delN();
+            if (e.key === 'Enter') validate();
+        }
+    });
 
-// Inicialización
-window.onload = () => { updPin(); };
+    // Lógica de Vistas
+    function render(view) {
+        const content = document.getElementById('content');
+        const title = document.getElementById('viewTitle');
+        
+        // Actualizar UI del menú
+        document.querySelectorAll('.nItem').forEach(i => i.classList.remove('on'));
+        
+        if (view === 'dash') {
+            title.innerText = "Dashboard General";
+            content.innerHTML = `
+                <div class="card">
+                    <div style="font-size: 0.8rem; color:#6a8570; text-transform:uppercase">Total de Especies</div>
+                    <div class="val">${inventario.length}</div>
+                </div>
+            `;
+        } else if (view === 'inv') {
+            title.innerText = "Inventario Completo";
+            let rows = inventario.map(i => `
+                <tr>
+                    <td>${i.id}</td>
+                    <td>${i.nombre}</td>
+                    <td><span style="color:${i.estado === 'Activo' ? '#6ab87a' : '#d4aa30'}">${i.estado}</span></td>
+                </tr>
+            `).join('');
+            
+            content.innerHTML = `
+                <div class="card" style="padding:0">
+                    <table>
+                        <thead><tr><th>ID</th><th>Especie</th><th>Estado</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+    }
 </script>
+
+</body>
+</html>
