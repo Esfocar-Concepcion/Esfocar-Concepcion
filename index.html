@@ -335,7 +335,7 @@ function pOk(){
   var adminPin=cfg.adminPin||'0000';
   var validPins=[adminPin];
   // Agregar PINs de funcionarios con pin asignado
-  S.fun=(JSON.parse(localStorage.getItem('e_fun'))||[]);
+  S.fun=(JSON.parse(localStorage.getItem('e_fun'))||SFUN);
   S.fun.forEach(function(f){if(f.pin&&f.pin.trim()!=='')validPins.push(f.pin);});
   if(validPins.indexOf(pin)<0){
     document.getElementById('lErr').textContent='PIN incorrecto';
