@@ -1,131 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ESFOCAR Inventario 2026</title>
-<style>
-/* --- ESTILOS ORIGINALES Y MEJORADOS --- */
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9;min-height:100vh;overflow-x:hidden}
-#loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2420,#2d3a30)}
-.lBox{background:#2d3a30;border-radius:18px;padding:40px 36px;width:330px;box-shadow:0 10px 40px rgba(0,0,0,.6);text-align:center;border:1px solid #3d5040}
-.lLogo{font-size:2.2rem;font-weight:900;letter-spacing:3px;color:#c8e6cd}
-.lSub{font-size:.7rem;letter-spacing:2px;color:#6a8570;text-transform:uppercase;margin-bottom:22px}
-.lTitle{font-size:.85rem;color:#8fb89a;margin-bottom:18px}
-.pinD{background:#1a2420;border-radius:10px;padding:14px;font-size:1.9rem;letter-spacing:.5rem;min-height:54px;margin-bottom:20px;color:#6ab87a;border:2px solid #3d5040;font-weight:700}
-.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px}
-.pBtn{background:#3d5040;border:none;color:#e8ede9;font-size:1.1rem;font-weight:700;padding:17px;border-radius:11px;cursor:pointer;transition:.15s}
-.pBtn:hover{background:#4a5d4e;transform:scale(1.04)}
-.pDel{background:#4a3030}.pDel:hover{background:#5a4040}
-.pOk{background:#3a6040;grid-column:span 3;font-size:.9rem;letter-spacing:2px;padding:14px}
-.pOk:hover{background:#4a7050}
-.lErr{color:#e07070;font-size:.82rem;margin-top:8px;min-height:18px}
-#app{display:none;height:100vh;overflow:hidden}
-#aWrap{display:flex;height:100%}
-#sb{width:260px;min-width:260px;background:#1e2d25;display:flex;flex-direction:column;border-right:1px solid #2a3a2e}
-.sbTop{padding:20px 18px 14px}
-.sbLogo{font-size:1.55rem;font-weight:900;letter-spacing:2px;color:#c8e6cd}
-.sbSub{font-size:.63rem;letter-spacing:2px;color:#6a8570;text-transform:uppercase;margin-bottom:14px}
-.uCard{background:#253028;border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:11px;border:1px solid #2a3a2e}
-.uAv{width:38px;height:38px;border-radius:50%;background:#4a7050;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;color:#c8e6cd;flex-shrink:0}
-.uNm{font-size:.83rem;font-weight:700;color:#c8e6cd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.uRol{font-size:.7rem;color:#8fb89a}
-.sbNav{flex:1;overflow-y:auto;padding:12px 0}
-.nSec{font-size:.6rem;letter-spacing:2px;color:#6a8570;text-transform:uppercase;padding:15px 18px 5px}
-.nItem{display:flex;align-items:center;gap:11px;padding:10px 18px;cursor:pointer;color:#8fb89a;font-size:.87rem;border-left:3px solid transparent;transition:.13s}
-.nItem:hover{background:#253028;color:#c8e6cd}
-.nItem.on{background:#253028;color:#c8e6cd;border-left-color:#6ab87a;font-weight:600}
-.nIco{width:20px;text-align:center;font-style:normal}
-.sbFoot{padding:12px 18px;border-top:1px solid #2a3a2e;font-size:.7rem;color:#6a8570;line-height:1.7}
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.tBar{background:#1e2d25;padding:13px 26px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a3a2e;flex-shrink:0}
-.tBar h1{font-size:1rem;font-weight:700;color:#c8e6cd}
-.tRight{display:flex;align-items:center;gap:9px}
-.tBadge{background:#253028;padding:5px 13px;border-radius:18px;font-size:.76rem;color:#8fb89a;border:1px solid #2a3a2e}
-.btnOut{background:transparent;border:1px solid #3d5040;color:#8fb89a;padding:5px 13px;border-radius:7px;cursor:pointer;font-size:.76rem;transition:.13s}
-.btnOut:hover{background:#3d5040;color:#fff}
-#cnt{flex:1;overflow-y:auto;padding:22px 26px}
-.sGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:22px}
-.sCd{background:#1e2d25;border-radius:13px;padding:20px 18px;border:1px solid #2a3a2e;transition:.18s}
-.sCd .val{font-size:2rem;font-weight:800;color:#6ab87a;line-height:1}
-.sCd .lbl{font-size:.72rem;color:#8fb89a;margin-top:5px;text-transform:uppercase;letter-spacing:.4px}
-.sCd.w .val{color:#d4aa30}.sCd.d .val{color:#d47070}
-.tWrap{background:#1e2d25;border-radius:13px;border:1px solid #2a3a2e;overflow:hidden;margin-bottom:14px}
-.tHead{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a3a2e;background:#1a2520}
-table{width:100%;border-collapse:collapse}
-th{background:#161f1b;color:#8fb89a;font-size:.73rem;padding:12px 14px;text-align:left;text-transform:uppercase}
-td{padding:12px 14px;font-size:.81rem;border-top:1px solid #1e2820;color:#c8e6cd}
-tr:hover td{background:#253028}
-.bA{padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:700}
-.stA{background:#1a3a20;color:#6ab87a}.stP{background:#3a3000;color:#d4aa30}.stB{background:#3a1a1a;color:#d47070}
-.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center}
-.ov.open{display:flex}
-.mdl{background:#1e2d25;border-radius:15px;padding:28px;width:520px;max-width:95vw;border:1px solid #2a3a2e}
-.mdl h3{color:#c8e6cd;margin-bottom:18px}
-.fg{margin-bottom:15px}
-.fg label{display:block;font-size:.7rem;color:#8fb89a;margin-bottom:5px;text-transform:uppercase}
-input,select,textarea{width:100%;background:#141e1a;border:1px solid #2a3a2e;color:#fff;padding:10px;border-radius:7px;outline:none}
-.btn{padding:10px 20px;border-radius:7px;border:none;cursor:pointer;font-weight:700}
-.gn{background:#3a6040;color:#fff}.rd{background:#5a2020;color:#fff}
-.ql{max-height:150px;overflow-y:auto;background:#141e1a;border:1px solid #2a3a2e;margin-top:2px}
-.qi{padding:8px;cursor:pointer;border-bottom:1px solid #1a2420;font-size:.8rem}
-.qi:hover{background:#253028}
-</style>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-</head>
-<body>
-
-<div id="loginWrap">
-  <div class="lBox">
-    <div class="lLogo">ESFOCAR</div>
-    <div class="lSub">Inventario V5 — 2026</div>
-    <div class="lTitle">Código de Acceso</div>
-    <div class="pinD" id="pinD">_ _ _ _</div>
-    <div class="pad">
-      <button class="pBtn" onclick="pN(1)">1</button><button class="pBtn" onclick="pN(2)">2</button><button class="pBtn" onclick="pN(3)">3</button>
-      <button class="pBtn" onclick="pN(4)">4</button><button class="pBtn" onclick="pN(5)">5</button><button class="pBtn" onclick="pN(6)">6</button>
-      <button class="pBtn" onclick="pN(7)">7</button><button class="pBtn" onclick="pN(8)">8</button><button class="pBtn" onclick="pN(9)">9</button>
-      <button class="pBtn pDel" onclick="pD()">←</button><button class="pBtn" onclick="pN(0)">0</button>
-      <button class="pBtn pOk" onclick="pOk()">ENTRAR</button>
-    </div>
-    <div class="lErr" id="lErr"></div>
-  </div>
-</div>
-
-<div id="app">
-  <div id="aWrap">
-    <nav id="sb">
-      <div class="sbTop">
-        <div class="sbLogo">ESFOCAR</div>
-        <div class="sbSub">Concepción — 2026</div>
-        <div class="uCard">
-          <div class="uAv">AD</div>
-          <div><div class="uNm">Administrador</div><div class="uRol">👑 Admin</div></div>
-        </div>
-      </div>
-      <div class="sbNav" id="sbNav"></div>
-      <div class="sbFoot">Sistema de Control<br>Patrimonial</div>
-    </nav>
-    <div id="main">
-      <div class="tBar"><h1 id="tTitle">Dashboard</h1><div class="tRight"><button class="btn gn" onclick="oMdl('mEsp')">+ Nuevo</button><button class="btnOut" onclick="logout()">Salir</button></div></div>
-      <div id="cnt"></div>
-    </div>
-  </div>
-</div>
-
-<div class="ov" id="mEsp"><div class="mdl"><h3>Nuevo Bien</h3>
-  <div class="fg"><label>Nombre del bien</label><input id="eNom" placeholder="Ej: Escritorio madera"></div>
-  <div class="fg"><label>Código</label><input id="eCod" placeholder="ESF-001"></div>
-  <div class="fg"><label>Estado</label><select id="eEst"><option value="A">Activo</option><option value="P">Préstamo</option><option value="B">Baja</option></select></div>
-  <div class="mBtns" style="display:flex;gap:10px;justify-content:flex-end">
-    <button class="btn rd" onclick="cMdl('mEsp')">Cancelar</button>
-    <button class="btn gn" onclick="saveEsp()">Guardar</button>
-  </div>
-</div></div>
-
-<script>
-// --- DATA ---
+// --- BASE DE DATOS ---
 const SDEP=[
     {id:1, nombre: "SALA TRABAJO GRUPAL"},
     {id:2, nombre: "ENFERMERÍA"},
@@ -139,27 +12,49 @@ let SESP=[
     {id:3, cod:"ESF-TEC-050", nom:"NOTEBOOK INSTITUCIONAL", did:4, est:"P", anio:"2026", obs:"Prestado a Docencia"}
 ];
 
-// --- LOGICA LOGIN ---
-let pinBuf = "";
-function pN(n) { if(pinBuf.length < 4) { pinBuf += n; updPin(); } }
-function pD() { pinBuf = ""; updPin(); }
-function updPin() { document.getElementById('pinD').innerText = pinBuf.padEnd(4, '_').split('').join(' '); }
+// --- LÓGICA DE ACCESO (CORREGIDA) ---
+let pinBuf = ""; 
+
+function pN(n) {
+    if(pinBuf.length < 4) {
+        pinBuf += n.toString(); // Guardar como string
+        updPin();
+        document.getElementById('lErr').innerText = ""; // Limpiar error al escribir
+    }
+}
+
+function pD() {
+    pinBuf = "";
+    updPin();
+}
+
+function updPin() {
+    const display = document.getElementById('pinD');
+    // Esto asegura que siempre se vean 4 espacios
+    let visual = pinBuf.split('').join(' ') + " _ _ _ _".substring(pinBuf.length * 2);
+    display.innerText = visual.trim();
+}
 
 function pOk() {
-    if(pinBuf === "1234") { // PIN DE PRUEBA
+    // EL PIN ES 1234
+    if(pinBuf === "1234") { 
         document.getElementById('loginWrap').style.display = 'none';
         document.getElementById('app').style.display = 'block';
         renderNav();
         go('dash');
     } else {
-        document.getElementById('lErr').innerText = "PIN INCORRECTO";
-        pD();
+        const errorDiv = document.getElementById('lErr');
+        errorDiv.innerText = "PIN INCORRECTO (" + pinBuf.length + "/4 dígitos)";
+        // Efecto visual de error
+        document.getElementById('pinD').style.borderColor = "#e07070";
+        setTimeout(() => {
+            document.getElementById('pinD').style.borderColor = "#3d5040";
+            pD(); // Reiniciar
+        }, 500);
     }
 }
 
-function logout() { location.reload(); }
-
-// --- NAVEGACIÓN ---
+// --- NAVEGACIÓN Y RENDERIZADO ---
 function renderNav() {
     let html = `<div class="nItem" onclick="go('dash')" id="nv-dash">📊 Dashboard</div>`;
     html += `<div class="nSec">Ubicaciones</div>`;
@@ -174,7 +69,8 @@ function go(view, id = null) {
     const cnt = document.getElementById('cnt');
     
     if(view === 'dash') {
-        document.getElementById('nv-dash').classList.add('on');
+        const nv = document.getElementById('nv-dash');
+        if(nv) nv.classList.add('on');
         document.getElementById('tTitle').innerText = "Dashboard General";
         
         const stats = {
@@ -187,6 +83,62 @@ function go(view, id = null) {
         cnt.innerHTML = `
             <div class="sGrid">
                 <div class="sCd"><div class="val">${stats.t}</div><div class="lbl">Total Bienes</div></div>
-                <div class="sCd"><div class="val">${stats.a}</div><div class="lbl">Activos</div></div>
+                <div class="sCd"><div class="val" style="color:#6ab87a">${stats.a}</div><div class="lbl">Activos</div></div>
                 <div class="sCd w"><div class="val">${stats.p}</div><div class="lbl">En Préstamo</div></div>
-                <div class="sCd d"><div class="val">${stats.b}</div>
+                <div class="sCd d"><div class="val">${stats.b}</div><div class="lbl">Bajas</div></div>
+            </div>
+            <div class="tWrap">
+                <div class="tHead"><h3>Inventario Reciente</h3></div>
+                <table>
+                    <thead><tr><th>Código</th><th>Nombre</th><th>Ubicación</th><th>Estado</th></tr></thead>
+                    <tbody>${renderTableRows(SESP)}</tbody>
+                </table>
+            </div>`;
+    } else {
+        const dep = SDEP.find(d => d.id === id);
+        const nv = document.getElementById('nv-dep'+id);
+        if(nv) nv.classList.add('on');
+        document.getElementById('tTitle').innerText = dep.nombre;
+        const items = SESP.filter(e => e.did === id);
+        cnt.innerHTML = `
+            <div class="tWrap">
+                <div class="tHead"><h3>Bienes en esta dependencia</h3></div>
+                <table>
+                    <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th></tr></thead>
+                    <tbody>${items.length ? renderTableRows(items) : '<tr><td colspan="3" style="text-align:center; padding:20px;">Sin bienes registrados en esta sala</td></tr>'}</tbody>
+                </table>
+            </div>`;
+    }
+}
+
+function renderTableRows(data) {
+    return data.map(e => `
+        <tr>
+            <td><strong>${e.cod}</strong></td>
+            <td>${e.nom}</td>
+            <td>${SDEP.find(d => d.id === e.did)?.nombre || 'S/N'}</td>
+            <td><span class="bA st${e.est}">${e.est === 'A' ? 'ACTIVO' : e.est === 'P' ? 'PRÉSTAMO' : 'BAJA'}</span></td>
+        </tr>
+    `).join('');
+}
+
+function logout() { location.reload(); }
+function oMdl(id) { document.getElementById(id).classList.add('open'); }
+function cMdl(id) { document.getElementById(id).classList.remove('open'); }
+
+function saveEsp() {
+    const nom = document.getElementById('eNom').value;
+    const cod = document.getElementById('eCod').value;
+    const est = document.getElementById('eEst').value;
+    if(!nom || !cod) return alert("Por favor, complete los campos obligatorios.");
+
+    SESP.unshift({ id: Date.now(), cod, nom, did: 1, est, anio: "2026", obs: "" });
+    cMdl('mEsp');
+    go('dash');
+    document.getElementById('eNom').value = "";
+    document.getElementById('eCod').value = "";
+}
+
+// Inicialización
+window.onload = () => { updPin(); };
+</script>
