@@ -3,175 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>ESFOCAR Inventario 2026</title>
+    <title>ESFOCAR - Sistema Unificado 2026</title>
+    
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
     <style>
-        /* Estilos base para asegurar que se vea bien en GitHub */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a2420; color: #e8ede9; min-height: 100vh; }
-        
-        #loginWrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .lBox { background: #2d3a30; border-radius: 18px; padding: 40px; width: 330px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-        .lLogo { font-size: 2rem; font-weight: 900; color: #c8e6cd; margin-bottom: 5px; }
-        .lSub { font-size: .7rem; color: #6a8570; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 2px; }
-        
-        .pinDisplay { background: #141e1a; border: 2px solid #3d5040; border-radius: 10px; padding: 15px; font-size: 1.8rem; 
-                      margin-bottom: 20px; color: #6ab87a; font-family: monospace; letter-spacing: 8px; }
-        
-        .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .pBtn { background: #3d5040; border: none; color: #fff; padding: 20px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1.2rem; }
-        .pBtn:active { background: #6ab87a; }
-        .pDel { background: #4a3030; }
-        .pOk { background: #3a6040; grid-column: span 3; font-size: 1rem; }
-        
-        #app { display: none; }
-        .error { color: #ff6b6b; font-size: 0.8rem; margin-top: 10px; min-height: 1.2em; }
+        :root {
+            --bg: #1a2420;
+            --card: #1e2d25;
+            --primary: #6ab87a;
+            --text: #e8ede9;
+            --danger: #e07070;
+            --accent: #3d5040;
+        }
 
-        /* Estructura App */
-        #aWrap { display: flex; height: 100vh; }
-        #sb { width: 260px; background: #1e2d25; border-right: 1px solid #2a3a2e; padding: 20px; }
-        #main { flex: 1; padding: 25px; overflow-y: auto; }
-        .nItem { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; color: #8fb89a; }
-        .nItem:hover, .nItem.on { background: #2d3a30; color: #fff; }
-        .card { background: #1e2d25; padding: 20px; border-radius: 12px; border: 1px solid #2a3a2e; margin-bottom: 20px; }
-        .val { font-size: 2.5rem; font-weight: bold; color: #6ab87a; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; font-size: 0.7rem; color: #6a8570; text-transform: uppercase; padding: 10px; }
-        td { padding: 12px 10px; border-top: 1px solid #2a3a2e; font-size: 0.9rem; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; }
+
+        /* --- LOGIN --- */
+        #loginWrap { display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #1a2420, #2d3a30); }
+        .lBox { background: #2d3a30; padding: 40px; border-radius: 18px; width: 340px; text-align: center; border: 1px solid var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .pinD { background: #141e1a; padding: 15px; font-size: 2.2rem; margin-bottom: 20px; color: var(--primary); border-radius: 10px; letter-spacing: 8px; border: 2px solid var(--accent); font-family: monospace; }
+        .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .pBtn { background: var(--accent); border: none; color: white; padding: 18px; border-radius: 10px; cursor: pointer; font-size: 1.2rem; font-weight: bold; transition: 0.2s; }
+        .pBtn:active { background: var(--primary); transform: scale(0.95); }
+        .pOk { background: #3a6040; grid-column: span 3; font-size: 1rem; text-transform: uppercase; margin-top: 5px; }
+        .lErr { color: var(--danger); font-size: 0.8rem; margin-top: 15px; min-height: 1.2em; }
+
+        /* --- ESTRUCTURA APP --- */
+        #app { display: none; height: 100vh; flex-direction: row; }
+        nav { width: 280px; background: #1e2d25; border-right: 1px solid #2a3a2e; padding: 25px; display: flex; flex-direction: column; }
+        main { flex: 1; padding: 35px; overflow-y: auto; background: var(--bg); }
+        
+        .nItem { padding: 12px 15px; cursor: pointer; border-radius: 8px; margin-bottom: 6px; color: #8fb89a; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .nItem:hover { background: #253028; color: white; }
+        .nItem.on { background: #2d3a30; color: white; border-left: 4px solid var(--primary); font-weight: bold; }
+        
+        /* --- DASHBOARD --- */
+        .sGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .sCd { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #2a3a2e; }
+        .val { font-size: 2.5rem; font-weight: 800; display: block; color: var(--primary); line-height: 1; }
+        .lbl { font-size: 0.7rem; color: #8fb89a; text-transform: uppercase; margin-top: 8px; letter-spacing: 1px; }
+
+        /* --- TABLA --- */
+        .tWrap { background: var(--card); border-radius: 12px; border: 1px solid #2a3a2e; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 14px; background: #161f1b; font-size: 0.75rem; color: #6a8570; text-transform: uppercase; }
+        td { padding: 14px; border-top: 1px solid #2a3a2e; font-size: 0.9rem; vertical-align: middle; }
+        tr:hover td { background: #253028; }
+        
+        .st { padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 900; }
+        .st-A { background: #1a3a20; color: #6ab87a; }
+        .st-P { background: #3a3000; color: #d4aa30; }
+        .st-B { background: #4a1a1a; color: #e07070; }
+
+        .btnW { background: #2b5797; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btnW:hover { background: #3569b3; }
     </style>
 </head>
 <body>
 
 <div id="loginWrap">
     <div class="lBox">
-        <div class="lLogo">ESFOCAR</div>
-        <div class="lSub">Gestión 2026</div>
-        <div class="pinDisplay" id="pinD">____</div>
+        <h1 style="color:#c8e6cd; letter-spacing: 2px;">ESFOCAR</h1>
+        <p style="font-size: 0.65rem; color: #6a8570; margin-bottom: 25px; letter-spacing: 1px;">SISTEMA UNIFICADO DE INVENTARIO</p>
+        <div class="pinD" id="pinD">____</div>
         <div class="pad">
-            <button class="pBtn" onclick="addN(1)">1</button>
-            <button class="pBtn" onclick="addN(2)">2</button>
-            <button class="pBtn" onclick="addN(3)">3</button>
-            <button class="pBtn" onclick="addN(4)">4</button>
-            <button class="pBtn" onclick="addN(5)">5</button>
-            <button class="pBtn" onclick="addN(6)">6</button>
-            <button class="pBtn" onclick="addN(7)">7</button>
-            <button class="pBtn" onclick="addN(8)">8</button>
-            <button class="pBtn" onclick="addN(9)">9</button>
-            <button class="pBtn pDel" onclick="delN()">←</button>
+            <button class="pBtn" onclick="addN(1)">1</button><button class="pBtn" onclick="addN(2)">2</button><button class="pBtn" onclick="addN(3)">3</button>
+            <button class="pBtn" onclick="addN(4)">4</button><button class="pBtn" onclick="addN(5)">5</button><button class="pBtn" onclick="addN(6)">6</button>
+            <button class="pBtn" onclick="addN(7)">7</button><button class="pBtn" onclick="addN(8)">8</button><button class="pBtn" onclick="addN(9)">9</button>
+            <button class="pBtn" style="background:#4a3030" onclick="delN()">C</button>
             <button class="pBtn" onclick="addN(0)">0</button>
             <button class="pBtn pOk" onclick="validate()">ENTRAR</button>
         </div>
-        <div class="error" id="msg"></div>
+        <div class="lErr" id="lMsg"></div>
     </div>
 </div>
 
 <div id="app">
-    <div id="aWrap">
-        <nav id="sb">
-            <h2 style="margin-bottom: 20px; color:#c8e6cd">Menú</h2>
-            <div id="nav">
-                <div class="nItem on" onclick="render('dash')">📊 Dashboard</div>
-                <div class="nItem" onclick="render('inv')">📋 Inventario</div>
-            </div>
-            <button onclick="location.reload()" style="margin-top: 20px; background:none; border:1px solid #4a3030; color:#ff6b6b; padding:8px; width:100%; border-radius:5px; cursor:pointer">Cerrar Sesión</button>
-        </nav>
-        <main id="main">
-            <h1 id="viewTitle" style="margin-bottom: 20px;">Dashboard</h1>
-            <div id="content"></div>
-        </main>
-    </div>
+    <nav>
+        <h2 style="color:var(--primary); font-size: 1.2rem; margin-bottom: 20px;">📦 Gestión 2026</h2>
+        <div class="nItem on" id="m-dash" onclick="view('dash')">📊 Resumen Histórico</div>
+        <div style="font-size: 0.65rem; color: #6a8570; margin: 20px 0 10px 10px; font-weight: bold; text-transform: uppercase;">Dependencias</div>
+        <div id="navDeps"></div>
+        <div style="margin-top: auto;">
+            <button onclick="location.reload()" style="width: 100%; padding: 12px; background: #3d2a2a; border: 1px solid #5a3a3a; color: #e07070; border-radius: 8px; cursor: pointer; font-weight: bold;">Salir del Sistema</button>
+        </div>
+    </nav>
+    <main>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #2a3a2e; padding-bottom: 20px;">
+            <h1 id="vTitle" style="font-size: 1.6rem;">Dashboard</h1>
+            <div id="actions"></div>
+        </div>
+        <div id="content"></div>
+    </main>
 </div>
 
 <script>
-    // Configuración
-    const CORRECT_PIN = "1234";
-    let currentPin = "";
+    let pin = "";
+    const DB = {
+        deps: [
+            { id: 1, nombre: "SALA TRABAJO GRUPAL", encargado: "SGTO 1RO PEREZ" },
+            { id: 2, nombre: "ENFERMERÍA", encargado: "CABO 2DO SOTO" },
+            { id: 3, nombre: "GUARDIA", encargado: "SGTO 2DO JARA" },
+            { id: 4, nombre: "SALA COMPUTACIÓN", encargado: "SGTO 2DO JARA" }
+        ],
+        // Inventario Unificado con Registro Histórico
+        bienes: [
+            { id: 101, cod: "ESF-MUE-001", nom: "Mesa de Reunión Madera", did: 1, est: "A", hist: "01/01/26: Ingreso inicial stock." },
+            { id: 102, cod: "ESF-MUE-028", nom: "Silla Kyos Negra", did: 1, est: "A", hist: "01/01/26: Ingreso inicial stock." },
+            { id: 103, cod: "ESF-TEC-050", nom: "Notebook Institucional i7", did: 4, est: "P", hist: "10/02/26: Prestado a Docencia (Of. 4)." },
+            { id: 104, cod: "ESF-MED-012", nom: "Camilla Clínica Acero", did: 2, est: "A", hist: "05/01/26: Recepción Sanidad." },
+            { id: 105, cod: "ESF-TEC-010", nom: "Impresora Láser Pro", did: 4, est: "B", hist: "15/02/26: Dada de baja por daño placa madre." }
+        ]
+    };
 
-    // Datos simulados
-    const inventario = [
-        { id: "001", nombre: "Escritorio", estado: "Activo" },
-        { id: "002", nombre: "Silla Ergonómica", estado: "Prestado" },
-        { id: "003", nombre: "Notebook", estado: "Activo" }
-    ];
-
-    // Funciones del Teclado
-    function addN(n) {
-        if (currentPin.length < 4) {
-            currentPin += n.toString();
-            updateDisplay();
-            document.getElementById('msg').innerText = "";
-        }
+    // --- ACCESO ---
+    function addN(n) { if(pin.length < 4) { pin += n; updP(); } }
+    function delN() { pin = ""; updP(); }
+    function updP() { 
+        document.getElementById('pinD').innerText = pin.padEnd(4, "_");
+        document.getElementById('lMsg').innerText = ""; 
     }
-
-    function delN() {
-        currentPin = "";
-        updateDisplay();
-    }
-
-    function updateDisplay() {
-        const d = document.getElementById('pinD');
-        // Rellena con guiones bajos lo que falte
-        d.innerText = currentPin.padEnd(4, "_");
-    }
-
+    
     function validate() {
-        if (currentPin === CORRECT_PIN) {
+        if(pin === "1234") {
             document.getElementById('loginWrap').style.display = 'none';
-            document.getElementById('app').style.display = 'block';
-            render('dash');
-        } else {
-            document.getElementById('msg').innerText = "PIN INCORRECTO";
-            currentPin = "";
-            updateDisplay();
-            // Efecto de sacudida visual
-            document.getElementById('pinD').style.borderColor = "#ff6b6b";
-            setTimeout(() => document.getElementById('pinD').style.borderColor = "#3d5040", 500);
+            document.getElementById('app').style.display = 'flex';
+            init();
+        } else { 
+            document.getElementById('lMsg').innerText = "PIN INCORRECTO - REINTENTE";
+            delN(); 
         }
     }
 
-    // Soporte para teclado físico (Muy importante para GitHub/Web)
+    // Teclado físico
     document.addEventListener('keydown', (e) => {
-        if (document.getElementById('loginWrap').style.display !== 'none') {
-            if (e.key >= '0' && e.key <= '9') addN(e.key);
-            if (e.key === 'Backspace') delN();
-            if (e.key === 'Enter') validate();
+        if(document.getElementById('app').style.display !== 'flex') {
+            if(e.key >= '0' && e.key <= '9') addN(e.key);
+            if(e.key === 'Backspace') delN();
+            if(e.key === 'Enter') validate();
         }
     });
 
-    // Lógica de Vistas
-    function render(view) {
-        const content = document.getElementById('content');
-        const title = document.getElementById('viewTitle');
-        
-        // Actualizar UI del menú
+    // --- APP ---
+    function init() {
+        const menu = document.getElementById('navDeps');
+        menu.innerHTML = DB.deps.map(d => `<div class="nItem" id="m-dep${d.id}" onclick="view('dep', ${d.id})">📍 ${d.nombre}</div>`).join('');
+        view('dash');
+    }
+
+    function view(mode, id = null) {
+        const cnt = document.getElementById('content');
+        const acts = document.getElementById('actions');
         document.querySelectorAll('.nItem').forEach(i => i.classList.remove('on'));
-        
-        if (view === 'dash') {
-            title.innerText = "Dashboard General";
-            content.innerHTML = `
-                <div class="card">
-                    <div style="font-size: 0.8rem; color:#6a8570; text-transform:uppercase">Total de Especies</div>
-                    <div class="val">${inventario.length}</div>
+        acts.innerHTML = "";
+
+        if(mode === 'dash') {
+            document.getElementById('m-dash').classList.add('on');
+            document.getElementById('vTitle').innerText = "Histórico Unificado";
+            const b = DB.bienes;
+            cnt.innerHTML = `
+                <div class="sGrid">
+                    <div class="sCd"><span class="val">${b.length}</span><span class="lbl">Bienes Totales</span></div>
+                    <div class="sCd"><span class="val" style="color:var(--primary)">${b.filter(x=>x.est==='A').length}</span><span class="lbl">Activos</span></div>
+                    <div class="sCd"><span class="val" style="color:#d4aa30">${b.filter(x=>x.est==='P').length}</span><span class="lbl">En Préstamo</span></div>
+                    <div class="sCd"><span class="val" style="color:var(--danger)">${b.filter(x=>x.est==='B').length}</span><span class="lbl">Bajas</span></div>
                 </div>
+                <h3 style="margin-bottom:15px; font-size:1rem; color:#8fb89a">Registro Maestro de Inventario</h3>
+                <div class="tWrap">${renderTable(b, true)}</div>
             `;
-        } else if (view === 'inv') {
-            title.innerText = "Inventario Completo";
-            let rows = inventario.map(i => `
-                <tr>
-                    <td>${i.id}</td>
-                    <td>${i.nombre}</td>
-                    <td><span style="color:${i.estado === 'Activo' ? '#6ab87a' : '#d4aa30'}">${i.estado}</span></td>
-                </tr>
-            `).join('');
-            
-            content.innerHTML = `
-                <div class="card" style="padding:0">
-                    <table>
-                        <thead><tr><th>ID</th><th>Especie</th><th>Estado</th></tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
-            `;
+        } else {
+            const dep = DB.deps.find(x => x.id === id);
+            document.getElementById('m-dep'+id).classList.add('on');
+            document.getElementById('vTitle').innerText = dep.nombre;
+            acts.innerHTML = `<button class="btnW" onclick="exportWord(${id})">📝 Generar Planilla Word</button>`;
+            const items = DB.bienes.filter(x => x.did === id);
+            cnt.innerHTML = `<div class="tWrap">${renderTable(items, false)}</div>`;
         }
+    }
+
+    function renderTable(data, showHist) {
+        if(!data.length) return `<div style="padding:40px; text-align:center; color:#6a8570">Sin registros para esta dependencia.</div>`;
+        return `<table>
+            <thead><tr><th>CÓDIGO</th><th>ESPECIE</th><th>ESTADO</th>${showHist ? '<th>HISTORIAL / OBSERVACIÓN</th>' : ''}</tr></thead>
+            <tbody>${data.map(i => `
+                <tr>
+                    <td style="font-family:monospace; font-weight:bold">${i.cod}</td>
+                    <td>${i.nom}</td>
+                    <td><span class="st st-${i.est}">${i.est === 'A' ? 'ACTIVO' : i.est === 'B' ? 'BAJA' : 'PRESTADO'}</span></td>
+                    ${showHist ? `<td style="font-size:0.75rem; color:#8fb89a; font-style:italic">${i.hist}</td>` : ''}
+                </tr>`).join('')}
+            </tbody></table>`;
+    }
+
+    // --- EXPORTACIÓN WORD ---
+    async function exportWord(depId) {
+        const dep = DB.deps.find(x => x.id === depId);
+        const items = DB.bienes.filter(x => x.did === depId);
+        
+        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, AlignmentType, BorderStyle } = docx;
+
+        // Estilo de bordes
+        const border = { style: BorderStyle.SINGLE, size: 1, color: "000000" };
+
+        const tableRows = [
+            new TableRow({
+                children: [
+                    new TableCell({ children: [new Paragraph({ text: "CÓDIGO", bold: true })], shading: { fill: "E0E0E0" } }),
+                    new TableCell({ children: [new Paragraph({ text: "ESPECIE / DESCRIPCIÓN", bold: true })], shading: { fill: "E0E0E0" } }),
+                    new TableCell({ children: [new Paragraph({ text: "ESTADO", bold: true })], shading: { fill: "E0E0E0" } })
+                ]
+            })
+        ];
+
+        items.forEach(i => {
+            tableRows.push(new TableRow({
+                children: [
+                    new TableCell({ children: [new Paragraph(i.cod)] }),
+                    new TableCell({ children: [new Paragraph(i.nom)] }),
+                    new TableCell({ children: [new Paragraph(i.est === 'A' ? 'ACTIVO' : i.est === 'B' ? 'BAJA' : 'PRESTADO')] })
+                ]
+            }));
+        });
+
+        const doc = new Document({
+            sections: [{
+                children: [
+                    new Paragraph({ text: "ESCUELA DE FORMACIÓN DE CARABINEROS", bold: true, alignment: AlignmentType.CENTER }),
+                    new Paragraph({ text: "SECCIÓN DE INVENTARIOS Y LOGÍSTICA", alignment: AlignmentType.CENTER }),
+                    new Paragraph({ text: "PLANILLA DE CARGO DE INVENTARIO - 2026", bold: true, alignment: AlignmentType.CENTER }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({ children: [new TextRun({ text: "DEPENDENCIA: ", bold: true }), new TextRun(dep.nombre)] }),
+                    new Paragraph({ children: [new TextRun({ text: "ENCARGADO: ", bold: true }), new TextRun(dep.encargado)] }),
+                    new Paragraph({ text: "" }),
+                    new Table({ 
+                        width: { size: 100, type: WidthType.PERCENTAGE }, 
+                        rows: tableRows 
+                    }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({ text: "____________________________________", alignment: AlignmentType.CENTER }),
+                    new Paragraph({ text: "FIRMA ENCARGADO DE CARGO", alignment: AlignmentType.CENTER }),
+                    new Paragraph({ text: "REGISTRO HISTÓRICO UNIFICADO", size: 12, alignment: AlignmentType.RIGHT })
+                ]
+            }]
+        });
+
+        Packer.toBlob(doc).then(blob => {
+            saveAs(blob, `Planilla_${dep.nombre.replace(/ /g, "_")}_2026.docx`);
+        });
     }
 </script>
 
