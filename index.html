@@ -6,7 +6,7 @@
 <title>ESFOCAR Inventario 2026</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9;height:100vh;overflow:hidden}
+body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9;height:100vh;overflow:hidden;margin:0;padding:0}
 #loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2420,#2d3a30)}
 .lBox{background:#2d3a30;border-radius:18px;padding:40px 36px;width:330px;box-shadow:0 10px 40px rgba(0,0,0,.6);text-align:center;border:1px solid #3d5040}
 .lLogo{font-size:2.2rem;font-weight:900;letter-spacing:3px;color:#c8e6cd}
@@ -450,10 +450,12 @@ function rDep(){
   var tab=S.depTab||'lista';
   var tabs=[
     {id:'lista',ico:'🏢',label:'Dependencias'},
-    {id:'planillas',ico:'📄',label:'Obtener Planillas'},
-    {id:'unificado',ico:'📋',label:'Inventario Unificado'}
+    {id:'edicion',ico:'✏️',label:'Edición'},
+    {id:'funcionarios',ico:'👤',label:'Encargados'},
+    {id:'planillas',ico:'📄',label:'Planillas'},
+    {id:'unificado',ico:'📋',label:'Unificado'}
   ];
-  var h='<div class="sHdr"><h2>🏢 Dependencias</h2></div>';
+  var h='<div class="sHdr" style="margin-bottom:10px"><h2>🏢 Dependencias</h2></div>';
   h+='<div class="tabs">';
   tabs.forEach(function(t){var on=t.id===tab;h+='<div class="tab'+(on?' on':'')+'" onclick="S.depTab=\''+t.id+'\';rDep()">'+t.ico+' '+t.label+'</div>';});
   h+='</div>';
@@ -461,40 +463,152 @@ function rDep(){
   if(tab==='lista'){
     var q=(S.depQ||'').toLowerCase();
     var fl=S.dep.filter(function(d){return!q||d.nombre.toLowerCase().indexOf(q)>=0;});
-    h+='<div class="tHead" style="background:#161f1b;border-radius:9px 9px 0 0;border:1px solid #2a3a2e;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;padding:12px 16px">';
-    h+='<input type="text" placeholder="Buscar dependencia..." value="'+esc(S.depQ||'')+'" oninput="S.depQ=this.value;rDep()" style="width:260px">';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
+    h+='<input type="text" placeholder="Buscar dependencia..." value="'+esc(S.depQ||'')+'" oninput="S.depQ=this.value;rDep()" style="flex:1;max-width:300px">';
     h+='<span style="font-size:.76rem;color:#6a8570">'+fl.length+' dependencias</span>';
-    h+='<button class="btn gn" onclick="oAddDep()">➕ Nueva</button>';
-    h+='</div><div class="dGrid">';
+    h+='<button class="btn gn" onclick="oAddDepInline()">➕ Nueva dependencia</button>';
+    h+='</div>';
+    h+='<div id="addDepInlineArea"></div>';
+    h+='<div class="dGrid">';
     fl.forEach(function(d){
       var cnt=S.esp.filter(function(e){return e.did===d.id;}).length;
       var activos=S.esp.filter(function(e){return e.did===d.id&&e.est==='A';}).length;
-      h+='<div class="dCd" onclick="vDep('+d.id+')"><div class="dId">DEP-'+String(d.id).padStart(3,'0')+'</div><div class="dNm">'+esc(d.nombre)+'</div><div class="dCnt">'+cnt+'</div><div class="dLbl">bienes &mdash; <span style="color:#6ab87a">'+activos+' activos</span></div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn bl sm" onclick="event.stopPropagation();oEditDep('+d.id+')">✏️</button><button class="btn rd sm" onclick="event.stopPropagation();dDep('+d.id+')">🗑️</button></div></div>';
+      var enc=d.encNom?('<div style="font-size:.67rem;color:#6ab87a;margin-top:4px">👤 '+esc(d.encGrado?d.encGrado+' ':'')+esc(d.encNom)+'</div>'):'';
+      h+='<div class="dCd" onclick="vDep('+d.id+')"><div class="dId">DEP-'+String(d.id).padStart(3,'0')+'</div>';
+      h+='<div class="dNm">'+esc(d.nombre)+'</div>';
+      h+=enc;
+      h+='<div class="dCnt">'+cnt+'</div><div class="dLbl">bienes &mdash; <span style="color:#6ab87a">'+activos+' activos</span></div>';
+      h+='<div style="margin-top:10px;display:flex;gap:6px">';
+      h+='<button class="btn gn sm" onclick="event.stopPropagation();dlPlanillaWord('+d.id+')" title="Planilla Word">📄</button>';
+      h+='<button class="btn bl sm" onclick="event.stopPropagation();S.depTab=\'edicion\';S.depEditId='+d.id+';rDep()" title="Editar bienes">✏️</button>';
+      h+='<button class="btn rd sm" onclick="event.stopPropagation();dDep('+d.id+')" title="Eliminar">🗑️</button>';
+      h+='</div></div>';
     });
     if(!fl.length)h+='<div class="empty">Sin resultados</div>';
     h+='</div>';
   }
+
+  else if(tab==='edicion'){
+    var depSel=S.depEditId?S.dep.find(function(d){return d.id===S.depEditId;}):null;
+    h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">';
+    h+='<select onchange="S.depEditId=this.value?parseInt(this.value):null;S.depEditQ=\'\';rDep()" style="flex:1;max-width:340px">';
+    h+='<option value="">— Selecciona dependencia —</option>';
+    S.dep.forEach(function(d){h+='<option value="'+d.id+'"'+(depSel&&depSel.id===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';});
+    h+='</select>';
+    if(depSel){
+      h+='<button class="btn gn sm" onclick="abrirAgregarEspDep('+depSel.id+')">➕ Agregar especie</button>';
+      h+='<button class="btn bl sm" onclick="dlPlanillaWord('+depSel.id+')">📄 Planilla</button>';
+    }
+    h+='</div>';
+    if(!depSel){
+      h+='<div class="empty" style="padding:40px">Selecciona una dependencia para editar sus bienes</div>';
+    } else {
+      var items=S.esp.filter(function(e){return e.did===depSel.id;});
+      var qe=(S.depEditQ||'').toLowerCase();
+      var fl2=items.filter(function(e){
+        var matchQ=!qe||e.nom.toLowerCase().indexOf(qe)>=0||e.cod.toLowerCase().indexOf(qe)>=0;
+        var matchE=!S.depEditEst||e.est===S.depEditEst;
+        return matchQ&&matchE;
+      });
+      h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
+      h+='<input type="text" placeholder="Filtrar bienes..." value="'+esc(S.depEditQ||'')+'" oninput="S.depEditQ=this.value;rDep()" style="flex:1">';
+      h+='<select onchange="S.depEditEst=this.value;rDep()" style="min-width:120px">';
+      h+='<option value=""'+((!S.depEditEst)?' selected':'')+'>Todos</option>';
+      h+='<option value="A"'+(S.depEditEst==="A"?' selected':'')+'>Activos</option>';
+      h+='<option value="P"'+(S.depEditEst==="P"?' selected':'')+'>Prestados</option>';
+      h+='<option value="B"'+(S.depEditEst==="B"?' selected':'')+'>Bajas</option>';
+      h+='</select></div>';
+      h+='<div class="infoBanner"><strong>'+esc(depSel.nombre)+'</strong> — '+items.length+' bienes | mostrando '+fl2.length+'</div>';
+      h+='<div class="tWrap"><table><tr><th>Código</th><th>Nombre</th><th>BCU/SAP</th><th>N° Serie</th><th>Est.</th><th style="text-align:center">Acciones</th></tr>';
+      if(!fl2.length)h+='<tr><td colspan="6" class="empty">Sin resultados</td></tr>';
+      fl2.forEach(function(e){
+        var depOpts2=S.dep.map(function(d){return '<option value="'+d.id+'"'+(d.id===e.did?' selected':'')+'>'+esc(d.nombre.substring(0,28))+'</option>';}).join('');
+        h+='<tr>';
+        h+='<td style="font-family:monospace;font-size:.72rem;color:#a8d5b5">'+esc(e.cod)+'</td>';
+        h+='<td style="font-size:.79rem;font-weight:600">'+esc(e.nom)+'</td>';
+        h+='<td style="font-family:monospace;font-size:.72rem;color:#6ab87a">'+esc(e.bcu||'—')+'</td>';
+        h+='<td style="font-family:monospace;font-size:.72rem;color:#70a4d4">'+esc(e.serie||'—')+'</td>';
+        h+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
+        h+='<td style="white-space:nowrap;text-align:center">';
+        h+='<button class="btn bl sm" onclick="oEditEsp('+e.id+')" title="Editar">✏️</button> ';
+        h+='<select style="background:#141e1a;border:1px solid #2a3a2e;color:#e8ede9;border-radius:5px;font-size:.72rem;padding:3px 5px;max-width:130px" onchange="traslEspDep('+e.id+',this.value);this.value=\'\'" title="Trasladar a otra dependencia"><option value="">↕ Trasladar...</option>'+depOpts2+'</select> ';
+        h+='<button class="btn rd sm" onclick="elimEspDep('+e.id+')" title="Eliminar">🗑️</button>';
+        h+='</td></tr>';
+      });
+      h+='</table></div>';
+    }
+  }
+
+  else if(tab==='funcionarios'){
+    h+='<div class="infoBanner"><strong>👤 Encargados de Dependencia</strong><br>Asigna el funcionario a cargo de cada dependencia. Su nombre y grado aparecerán en la planilla Word automáticamente.</div>';
+    var qf=(S.depFunQ||'').toLowerCase();
+    var depFl2=S.dep.filter(function(d){return!qf||d.nombre.toLowerCase().indexOf(qf)>=0||(d.encNom&&d.encNom.toLowerCase().indexOf(qf)>=0);});
+    h+='<div style="display:flex;gap:10px;margin-bottom:14px">';
+    h+='<input type="text" placeholder="Filtrar dependencia o encargado..." value="'+esc(S.depFunQ||'')+'" oninput="S.depFunQ=this.value;rDep()" style="flex:1">';
+    h+='<span style="font-size:.76rem;color:#6a8570;align-self:center">'+S.dep.filter(function(d){return d.encNom;}).length+' / '+S.dep.length+' con encargado</span>';
+    h+='</div>';
+    h+='<div class="tWrap"><table>';
+    h+='<tr><th>Dependencia</th><th style="text-align:center">Bienes</th><th>Encargado</th><th>Grado/Cargo</th><th style="text-align:center">Acciones</th></tr>';
+    depFl2.forEach(function(d){
+      var cnt=S.esp.filter(function(e){return e.did===d.id;}).length;
+      h+='<tr>';
+      h+='<td style="font-weight:600;font-size:.82rem">'+esc(d.nombre)+'</td>';
+      h+='<td style="text-align:center;color:#6ab87a;font-weight:700">'+cnt+'</td>';
+      h+='<td><input type="text" id="encNom_'+d.id+'" value="'+esc(d.encNom||'')+'" placeholder="APELLIDO Nombre" style="width:100%;font-size:.78rem"></td>';
+      h+='<td><input type="text" id="encGrado_'+d.id+'" value="'+esc(d.encGrado||'')+'" placeholder="Ej: Mayor de Carabineros" style="width:100%;font-size:.78rem"></td>';
+      h+='<td style="text-align:center;white-space:nowrap">';
+      h+='<button class="btn gn sm" onclick="setEncDep('+d.id+')" title="Guardar encargado">💾</button> ';
+      h+='<button class="btn bl sm" onclick="dlPlanillaWord('+d.id+')" title="Descargar planilla">📄</button>';
+      h+='</td></tr>';
+    });
+    h+='</table></div>';
+    var cfg=getCfg();
+    h+='<div style="margin-top:22px;background:#1e2d25;border-radius:13px;border:1px solid #2a3a2e;padding:18px">';
+    h+='<div style="font-size:.78rem;color:#6ab87a;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">✍️ Firmas globales (aparecen en TODAS las planillas)</div>';
+    h+='<div class="fg3">';
+    h+='<div class="fg"><label>Jefe Comisión — Nombre completo</label><input id="cfgJefNom" value="'+esc(cfg.jefNom||'')+'" placeholder="MIGUEL RUBIO ALARCON"></div>';
+    h+='<div class="fg"><label>Jefe Comisión — Grado</label><input id="cfgJefGrd" value="'+esc(cfg.jefGrd||'')+'" placeholder="Teniente de Carabineros"></div>';
+    h+='<div class="fg"><label>Jefe Comisión — Cargo</label><input id="cfgJefCargo" value="'+esc(cfg.jefCargo||'JEFE COMISION INVENTARIO')+'" placeholder="JEFE COMISION INVENTARIO"></div>';
+    h+='</div><div class="fg3">';
+    h+='<div class="fg"><label>Comandante de Grupo — Nombre</label><input id="cfgCmdNom" value="'+esc(cfg.cmdNom||'')+'" placeholder="FRANCISCO ALMUNA BRAVO"></div>';
+    h+='<div class="fg"><label>Comandante — Grado</label><input id="cfgCmdGrd" value="'+esc(cfg.cmdGrd||'')+'" placeholder="Mayor de Carabineros"></div>';
+    h+='<div class="fg"><label>Ciudad (para planillas)</label><input id="cfgCiudad" value="'+esc(cfg.ciudad||'CONCEPCION')+'" placeholder="CONCEPCION"></div>';
+    h+='</div>';
+    h+='<button class="btn gn" onclick="guardarCfgFirma(true)">💾 Guardar firmas globales</button>';
+    h+='</div>';
+  }
+
   else if(tab==='planillas'){
-    h+='<div class="infoBanner"><strong>📄 Planillas Word por Dependencia</strong><br>Genera un documento <strong>.doc</strong> para cada dependencia con el listado completo de bienes, listo para imprimir y firmar. Puedes descargar una dependencia individual o <strong>todas a la vez</strong>.</div>';
-    h+='<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">';
-    h+='<input type="text" id="depPlQ" placeholder="Filtrar dependencia..." oninput="S.depPlQ=this.value;rDep()" value="'+esc(S.depPlQ||'')+'" style="flex:1;min-width:200px">';
-    h+='<button class="btn gn" onclick="dlTodasPlanillasWord()">⬇ Descargar TODAS (.doc)</button>';
+    var cfg2=getCfg();
+    h+='<div class="infoBanner"><strong>📄 Planillas — Modelo oficial ESFOCAR (Libro N° 1)</strong><br>Genera el documento Word exacto con la tabla de bienes y las tres firmas: <strong>Encargado de Dependencia</strong>, <strong>Jefe Comisión Inventario</strong> y <strong>Comandante de Grupo</strong>.<br>Configura las firmas globales en la pestaña <strong>👤 Encargados</strong>.</div>';
+    h+='<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">';
+    h+='<input type="text" placeholder="Filtrar dependencia..." oninput="S.depPlQ=this.value;rDep()" value="'+esc(S.depPlQ||'')+'" style="flex:1;min-width:200px">';
+    h+='<button class="btn gn" onclick="dlTodasPlanillasWord()">⬇ Descargar TODAS</button>';
     h+='</div>';
     var qpl=(S.depPlQ||'').toLowerCase();
-    var depFl=S.dep.filter(function(d){return!qpl||d.nombre.toLowerCase().indexOf(qpl)>=0;});
-    h+='<div class="tWrap"><table><tr><th>Dependencia</th><th style="text-align:center">Activos</th><th style="text-align:center">Prestados</th><th style="text-align:center">Bajas</th><th style="text-align:center">Total</th><th></th></tr>';
-    depFl.forEach(function(d){
+    var depFl3=S.dep.filter(function(d){return!qpl||d.nombre.toLowerCase().indexOf(qpl)>=0;});
+    h+='<div class="tWrap"><table>';
+    h+='<tr><th>Dependencia</th><th style="text-align:center">Activos</th><th style="text-align:center">Total</th><th>Encargado asignado</th><th></th></tr>';
+    depFl3.forEach(function(d){
       var esp=S.esp.filter(function(e){return e.did===d.id;});
       var act=esp.filter(function(e){return e.est==='A';}).length;
-      var pre=esp.filter(function(e){return e.est==='P';}).length;
-      var baj=esp.filter(function(e){return e.est==='B';}).length;
-      h+='<tr><td style="font-weight:600">'+esc(d.nombre)+'</td><td style="text-align:center;color:#6ab87a">'+act+'</td><td style="text-align:center;color:#d4aa30">'+pre+'</td><td style="text-align:center;color:#d47070">'+baj+'</td><td style="text-align:center;font-weight:700;color:#c8e6cd">'+esp.length+'</td><td style="white-space:nowrap"><button class="btn bl sm" onclick="dlPlanillaWord('+d.id+')">⬇ Word</button></td></tr>';
+      var encBadge=d.encNom
+        ?('<span style="color:#6ab87a;font-size:.73rem">✅ '+esc((d.encGrado?d.encGrado+' — ':'')+d.encNom)+'</span>')
+        :'<span style="color:#d47070;font-size:.73rem">⚠️ Sin encargado asignado</span>';
+      h+='<tr>';
+      h+='<td style="font-weight:600;font-size:.82rem">'+esc(d.nombre)+'</td>';
+      h+='<td style="text-align:center;color:#6ab87a;font-weight:700">'+act+'</td>';
+      h+='<td style="text-align:center;font-weight:700;color:#c8e6cd">'+esp.length+'</td>';
+      h+='<td>'+encBadge+'</td>';
+      h+='<td><button class="btn gn sm" onclick="dlPlanillaWord('+d.id+')">📄 Descargar</button></td>';
+      h+='</tr>';
     });
-    if(!depFl.length)h+='<tr><td colspan="6" class="empty">Sin resultados</td></tr>';
+    if(!depFl3.length)h+='<tr><td colspan="5" class="empty">Sin resultados</td></tr>';
     h+='</table></div>';
   }
+
   else if(tab==='unificado'){
-    h+='<div class="infoBanner"><strong>📋 Inventario Unificado — ESFOCAR Concepción + Escuadrón Hualpén</strong><br>Vista consolidada de <strong>todos los bienes</strong> de ambas unidades. Filtra, busca y exporta el inventario completo en un solo documento Word o CSV.</div>';
+    h+='<div class="infoBanner"><strong>📋 Inventario Unificado — ESFOCAR Concepción + Escuadrón Hualpén</strong></div>';
     var qu=(S.uniQ||'').toLowerCase();
     var uniDid=S.uniD?parseInt(S.uniD):0;
     var uniEst=S.uniEst||'';
@@ -508,63 +622,242 @@ function rDep(){
       var matchU=!uniUnidad||(uniUnidad==='H'?e._src==='H':e._src==='C');
       return matchQ&&matchD&&matchE&&matchU;
     });
-    var actU=flU.filter(function(e){return e.est==='A';}).length;
-    var preU=flU.filter(function(e){return e.est==='P';}).length;
-    var bajU=flU.filter(function(e){return e.est==='B';}).length;
     var hualU=flU.filter(function(e){return e._src==='H';}).length;
-    var concU=flU.length-hualU;
     h+='<div class="sGrid" style="margin-bottom:16px">';
-    h+='<div class="sCd"><div class="ico">📦</div><div class="val">'+flU.length+'</div><div class="lbl">Total filtrado</div></div>';
-    h+='<div class="sCd"><div class="ico">✅</div><div class="val" style="color:#6ab87a">'+actU+'</div><div class="lbl">Activos</div></div>';
-    h+='<div class="sCd w"><div class="ico">🔄</div><div class="val">'+preU+'</div><div class="lbl">Prestados</div></div>';
-    h+='<div class="sCd d"><div class="ico">🗑️</div><div class="val">'+bajU+'</div><div class="lbl">Bajas</div></div>';
-    h+='<div class="sCd b"><div class="ico">🏫</div><div class="val">'+concU+'</div><div class="lbl">ESFOCAR Conc.</div></div>';
-    h+='<div class="sCd b"><div class="ico">🏠</div><div class="val">'+hualU+'</div><div class="lbl">Esc. Hualpén</div></div>';
+    h+='<div class="sCd"><div class="ico">📦</div><div class="val">'+flU.length+'</div><div class="lbl">Total</div></div>';
+    h+='<div class="sCd"><div class="ico">✅</div><div class="val" style="color:#6ab87a">'+flU.filter(function(e){return e.est==='A';}).length+'</div><div class="lbl">Activos</div></div>';
+    h+='<div class="sCd w"><div class="ico">🔄</div><div class="val">'+flU.filter(function(e){return e.est==='P';}).length+'</div><div class="lbl">Prestados</div></div>';
+    h+='<div class="sCd d"><div class="ico">🗑️</div><div class="val">'+flU.filter(function(e){return e.est==='B';}).length+'</div><div class="lbl">Bajas</div></div>';
+    h+='<div class="sCd b"><div class="ico">🏫</div><div class="val">'+(flU.length-hualU)+'</div><div class="lbl">Concepción</div></div>';
+    h+='<div class="sCd b"><div class="ico">🏠</div><div class="val">'+hualU+'</div><div class="lbl">Hualpén</div></div>';
     h+='</div>';
-    var depOpts='<option value="">Todas las dependencias</option>';
-    S.dep.forEach(function(d){depOpts+='<option value="'+d.id+'"'+(uniDid===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';});
+    var depOptsU='<option value="">Todas las dependencias</option>';
+    S.dep.forEach(function(d){depOptsU+='<option value="'+d.id+'"'+(uniDid===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';});
     h+='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">';
-    h+='<input type="text" placeholder="Buscar código, nombre, BCU..." value="'+esc(S.uniQ||'')+'" oninput="S.uniQ=this.value;rDep()" style="flex:2;min-width:200px">';
-    h+='<select onchange="S.uniD=this.value;rDep()" style="flex:1;min-width:160px">'+depOpts+'</select>';
-    h+='<select onchange="S.uniEst=this.value;rDep()" style="min-width:110px"><option value=""'+((!uniEst)?' selected':'')+'>Todos los estados</option><option value="A"'+(uniEst==='A'?' selected':'')+'>Activos</option><option value="P"'+(uniEst==='P'?' selected':'')+'>Prestados</option><option value="B"'+(uniEst==='B'?' selected':'')+'>Bajas</option></select>';
-    h+='<select onchange="S.uniUnidad=this.value;rDep()" style="min-width:130px"><option value=""'+((!uniUnidad)?' selected':'')+'>Ambas unidades</option><option value="C"'+(uniUnidad==='C'?' selected':'')+'>ESFOCAR Conc.</option><option value="H"'+(uniUnidad==='H'?' selected':'')+'>Esc. Hualpén</option></select>';
+    h+='<input type="text" placeholder="Buscar..." value="'+esc(S.uniQ||'')+'" oninput="S.uniQ=this.value;rDep()" style="flex:2;min-width:200px">';
+    h+='<select onchange="S.uniD=this.value;rDep()" style="flex:1;min-width:160px">'+depOptsU+'</select>';
+    h+='<select onchange="S.uniEst=this.value;rDep()" style="min-width:110px"><option value="">Todos</option><option value="A">Activos</option><option value="P">Prestados</option><option value="B">Bajas</option></select>';
+    h+='<select onchange="S.uniUnidad=this.value;rDep()" style="min-width:130px"><option value="">Ambas</option><option value="C">Concepción</option><option value="H">Hualpén</option></select>';
     h+='</div>';
-    h+='<div style="display:flex;gap:8px;margin-bottom:10px;justify-content:flex-end"><button class="btn gn" onclick="dlInventarioUnificadoWord()">⬇ Word Unificado</button><button class="btn bl" onclick="dlInventarioUnificadoCSV()">⬇ CSV Unificado</button></div>';
+    h+='<div style="display:flex;gap:8px;margin-bottom:10px;justify-content:flex-end">';
+    h+='<button class="btn gn" onclick="dlInventarioUnificadoWord()">⬇ Word</button>';
+    h+='<button class="btn bl" onclick="dlInventarioUnificadoCSV()">⬇ CSV</button></div>';
     var PER=40;S.uniPg=S.uniPg||1;
     var pages=Math.ceil(flU.length/PER)||1;
     if(S.uniPg>pages)S.uniPg=1;
     var sl=flU.slice((S.uniPg-1)*PER,S.uniPg*PER);
-    h+='<div class="tWrap"><table><tr><th>Unidad</th><th>Código</th><th>Nombre del bien</th><th>Dependencia</th><th>BCU/SAP</th><th>Estado</th></tr>';
+    h+='<div class="tWrap"><table><tr><th>Unidad</th><th>Código</th><th>Nombre</th><th>Dependencia</th><th>BCU/SAP</th><th>Estado</th></tr>';
     sl.forEach(function(e){
       var dep=S.dep.find(function(d){return d.id===e.did;});
-      var unidadTag=e._src==='H'?'<span class="bA" style="background:#1a2a3a;color:#70a4d4;border:1px solid #2a3a5a">Hualpén</span>':'<span class="bA" style="background:#1a3a20;color:#6ab87a;border:1px solid #2a5030">Concepción</span>';
-      h+='<tr><td>'+unidadTag+'</td><td style="font-family:monospace;font-size:.72rem;color:#a8d5b5">'+esc(e.cod)+'</td><td style="font-size:.79rem;font-weight:600">'+esc(e.nom)+'</td><td style="font-size:.73rem;color:#8fb89a">'+esc(dep?dep.nombre:'—')+'</td><td style="font-family:monospace;font-size:.72rem;color:#6ab87a">'+esc(e.bcu||'—')+'</td><td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td></tr>';
+      var ut=e._src==='H'?'<span class="bA" style="background:#1a2a3a;color:#70a4d4;border:1px solid #2a3a5a">Hualpén</span>':'<span class="bA" style="background:#1a3a20;color:#6ab87a;border:1px solid #2a5030">Concepción</span>';
+      h+='<tr><td>'+ut+'</td><td style="font-family:monospace;font-size:.72rem;color:#a8d5b5">'+esc(e.cod)+'</td><td style="font-size:.79rem;font-weight:600">'+esc(e.nom)+'</td><td style="font-size:.73rem;color:#8fb89a">'+esc(dep?dep.nombre:'—')+'</td><td style="font-family:monospace;font-size:.72rem;color:#6ab87a">'+esc(e.bcu||'—')+'</td><td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td></tr>';
     });
     if(!sl.length)h+='<tr><td colspan="6" class="empty">Sin resultados</td></tr>';
     h+='</table>';
-    if(pages>1)h+='<div class="pgCtrl"><button onclick="S.uniPg=Math.max(1,S.uniPg-1);rDep()">Ant.</button><span>Pág. '+S.uniPg+' / '+pages+' — '+flU.length+' resultados</span><button onclick="S.uniPg=Math.min('+pages+',S.uniPg+1);rDep()">Sig.</button></div>';
+    if(pages>1)h+='<div class="pgCtrl"><button onclick="S.uniPg=Math.max(1,S.uniPg-1);rDep()">Ant.</button><span>Pág. '+S.uniPg+' / '+pages+' ('+flU.length+')</span><button onclick="S.uniPg=Math.min('+pages+',S.uniPg+1);rDep()">Sig.</button></div>';
     h+='</div>';
   }
+
   document.getElementById('cnt').innerHTML=h;
 }
 
+/* ─── Helpers Dependencias ─── */
+function oAddDepInline(){
+  var area=document.getElementById('addDepInlineArea');
+  if(!area)return;
+  area.innerHTML='<div style="background:#1e2d25;border:1px solid #3d6040;border-radius:11px;padding:16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'
+    +'<div style="flex:2;min-width:200px"><label style="font-size:.72rem;color:#8fb89a;display:block;margin-bottom:4px;text-transform:uppercase">Nombre dependencia</label>'
+    +'<input id="newDepNom" placeholder="Ej: OFICINA ADMINISTRADOR" style="width:100%;font-size:.85rem" onkeydown="if(event.key===\'Enter\')saveNewDep()"></div>'
+    +'<div style="flex:1;min-width:150px"><label style="font-size:.72rem;color:#8fb89a;display:block;margin-bottom:4px;text-transform:uppercase">Nombre hoja (corto)</label>'
+    +'<input id="newDepHoja" placeholder="Ej: OF. ADMIN." style="width:100%;font-size:.85rem"></div>'
+    +'<button class="btn gn" onclick="saveNewDep()">➕ Crear</button>'
+    +'<button class="btn rd" onclick="document.getElementById(\'addDepInlineArea\').innerHTML=\'\'">✕</button>'
+    +'</div>';
+  setTimeout(function(){var el=document.getElementById('newDepNom');if(el)el.focus();},50);
+}
+
+function saveNewDep(){
+  var nomEl=document.getElementById('newDepNom');
+  var hojaEl=document.getElementById('newDepHoja');
+  if(!nomEl)return;
+  var nom=nomEl.value.trim();
+  if(!nom){alert('Ingresa el nombre de la dependencia.');return;}
+  var newId=S.dep.length?Math.max.apply(null,S.dep.map(function(d){return d.id;}))+1:1;
+  S.dep.push({id:newId,nombre:nom.toUpperCase(),hoja:(hojaEl&&hojaEl.value.trim()?hojaEl.value.trim():nom).toUpperCase().substring(0,30)});
+  sv();log('Nueva dependencia: '+nom.toUpperCase());
+  S.depQ='';
+  document.getElementById('addDepInlineArea').innerHTML='';
+  rDep();
+}
+
+function dDep(id){
+  var d=S.dep.find(function(x){return x.id===id;});if(!d)return;
+  var cnt=S.esp.filter(function(e){return e.did===id;}).length;
+  if(cnt>0&&!confirm('Esta dependencia tiene '+cnt+' bienes asignados.\n¿Eliminar igualmente?'))return;
+  if(!confirm('¿Eliminar dependencia "'+d.nombre+'"?'))return;
+  S.dep=S.dep.filter(function(x){return x.id!==id;});
+  sv();log('Dep eliminada: '+d.nombre);rDep();
+}
+
+function setEncDep(id){
+  var d=S.dep.find(function(x){return x.id===id;});if(!d)return;
+  var nomEl=document.getElementById('encNom_'+id);
+  var grdEl=document.getElementById('encGrado_'+id);
+  if(nomEl)d.encNom=nomEl.value.trim().toUpperCase();
+  if(grdEl)d.encGrado=grdEl.value.trim();
+  sv();
+  var btn=event&&event.target;if(btn){btn.textContent='✓';setTimeout(function(){btn.textContent='💾';},1200);}
+  log('Encargado dep '+id+': '+(d.encNom||'—'));
+}
+
+function guardarCfgFirma(showMsg){
+  var cfg=getCfg()||{};
+  var f=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  cfg.jefNom=f('cfgJefNom');cfg.jefGrd=f('cfgJefGrd');cfg.jefCargo=f('cfgJefCargo')||'JEFE COMISION INVENTARIO';
+  cfg.cmdNom=f('cfgCmdNom');cfg.cmdGrd=f('cfgCmdGrd');cfg.ciudad=f('cfgCiudad')||'CONCEPCION';
+  saveCfg(cfg);
+  if(showMsg===true)alert('Firmas globales guardadas ✓');
+}
+
+function abrirAgregarEspDep(did){
+  S.mEspDid=did;
+  var depSel=document.getElementById('eDep');
+  if(depSel)depSel.value=did;
+  ['eCod','eNom','eBcu','eSerie','eObs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var anioEl=document.getElementById('eAnio');if(anioEl)anioEl.value=new Date().getFullYear();
+  var cantEl=document.getElementById('eCant');if(cantEl)cantEl.value='1';
+  var estEl=document.getElementById('eEst');if(estEl)estEl.value='A';
+  var t=document.getElementById('mEspT');
+  var d=S.dep.find(function(x){return x.id===did;});
+  if(t)t.textContent='Nueva especie en: '+(d?d.nombre:'Dependencia');
+  S.eid=null;
+  oMdl('mEsp');
+}
+
+function traslEspDep(eid,newDidStr){
+  var newDid=parseInt(newDidStr);if(!newDid)return;
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
+  var depDest=S.dep.find(function(x){return x.id===newDid;});
+  if(!depDest||depDest.id===e.did)return;
+  if(!confirm('¿Trasladar "'+e.nom+'" a la dependencia\n"'+depDest.nombre+'"?'))return;
+  e.did=newDid;
+  sv();log('Traslado: '+e.nom+' → '+depDest.nombre);rDep();
+}
+
+function elimEspDep(eid){
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
+  if(!confirm('¿Eliminar permanentemente\n"'+e.nom+'" del inventario?'))return;
+  S.esp=S.esp.filter(function(x){return x.id!==eid;});
+  sv();log('Eliminada: '+e.nom);rDep();
+}
+
+/* ─── Planilla Word modelo oficial ─── */
 function generarContenidoWordDep(depId){
   var dep=S.dep.find(function(d){return d.id===depId;});
   if(!dep)return'';
   var esp=S.esp.filter(function(e){return e.did===depId;});
-  var cfg=getCfg();
-  var inst=cfg.institucion||'ESFOCAR Concepción';
-  var anio=cfg.anio||'2026';
-  var fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  var cfg=getCfg()||{};
+  var ciudad=cfg.ciudad||'CONCEPCION';
+  var jefNom=cfg.jefNom||'';
+  var jefGrd=cfg.jefGrd||'';
+  var jefCargo=cfg.jefCargo||'JEFE COMISION INVENTARIO';
+  var cmdNom=cfg.cmdNom||'';
+  var cmdGrd=cfg.cmdGrd||'';
   var encNom=dep.encNom||'';
   var encGrado=dep.encGrado||'';
+  var meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  var hoy=new Date();
+  var fechaTxt=ciudad+', '+String(hoy.getDate()).padStart(2,'0')+' DE '+meses[hoy.getMonth()]+' DEL '+hoy.getFullYear();
+
+  // Mini escape para usar DENTRO del Word (no depende del esc() del app)
+  function e(s){
+    if(!s&&s!==0)return'';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   var filas='';
-  esp.forEach(function(e,i){
-    var estado=e.est==='A'?'ACTIVO':e.est==='P'?'PRESTADO':'BAJA';
-    filas+='<tr><td style="text-align:center;border:1px solid #000;padding:4px 6px">'+(i+1)+'</td><td style="border:1px solid #000;padding:4px 6px;font-family:Courier New;font-size:9pt">'+esc(e.cod||'')+'</td><td style="border:1px solid #000;padding:4px 6px;font-size:9pt">'+esc(e.nom||'')+'</td><td style="border:1px solid #000;padding:4px 6px;font-size:9pt">'+esc(e.bcu||'')+'</td><td style="border:1px solid #000;padding:4px 6px;font-family:Courier New;font-size:9pt">'+esc(e.serie||'')+'</td><td style="text-align:center;border:1px solid #000;padding:4px 6px;font-size:9pt">'+estado+'</td><td style="border:1px solid #000;padding:4px 6px;font-size:8pt;color:#333">'+esc((e.obs||'').substring(0,60))+'</td></tr>';
+  esp.forEach(function(item,i){
+    var codSap=item.bcu||'NO ASIGNADO';
+    var bcu=item.cod||'';
+    var desc=item.nom||'';
+    var obs=item.obs&&item.obs.trim()&&item.obs.trim().toLowerCase()!==desc.toLowerCase()?item.obs.trim().substring(0,80):'';
+    filas+='<tr>'
+      +'<td style="text-align:center;border:1px solid #000;padding:3px 5px;font-size:10pt">'+(i+1)+'</td>'
+      +'<td style="text-align:center;border:1px solid #000;padding:3px 6px;font-size:9pt;font-family:Arial Narrow,Arial">'+e(codSap)+'</td>'
+      +'<td style="text-align:center;border:1px solid #000;padding:3px 6px;font-size:9pt;font-family:Arial Narrow,Arial">'+e(bcu)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 7px;font-size:10pt">'+e(desc)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 7px;font-size:9pt;color:#555">'+e(obs||item.serie||'')+'</td>'
+      +'</tr>';
   });
-  return"<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:10pt;margin:2cm}h1{font-size:13pt;text-align:center;text-transform:uppercase;margin-bottom:2px}h2{font-size:11pt;text-align:center;margin-top:2px}.sub{font-size:9pt;text-align:center;color:#555;margin-bottom:16px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:#2d5a3d;color:white;font-size:9pt;padding:5px 6px;border:1px solid #000;text-transform:uppercase}td{vertical-align:top}.firma-box{margin-top:60px;display:flex;justify-content:space-around}.firma{text-align:center;width:40%;border-top:1px solid #000;padding-top:6px;font-size:9pt}.resumen{margin-top:10px;font-size:9pt;color:#444}.pie{margin-top:20px;font-size:8pt;color:#888;text-align:center}</style></head><body><h1>"+inst+"</h1><h2>PLANILLA DE INVENTARIO</h2><div class='sub'>Dependencia: <strong>"+esc(dep.nombre)+"</strong> &nbsp;|&nbsp; Año: <strong>"+anio+"</strong> &nbsp;|&nbsp; Fecha: <strong>"+fecha+"</strong></div><table><tr><th style='width:4%'>N°</th><th style='width:13%'>Código</th><th style='width:22%'>Nombre del Bien</th><th style='width:13%'>BCU/SAP</th><th style='width:13%'>N° Serie</th><th style='width:8%'>Estado</th><th style='width:27%'>Descripción</th></tr>"+(filas||"<tr><td colspan='7' style='text-align:center;padding:12px;border:1px solid #000'>Sin bienes registrados</td></tr>")+"</table><div class='resumen'>Total: <strong>"+esp.length+"</strong> &nbsp;|&nbsp; Activos: <strong>"+esp.filter(function(e){return e.est==='A';}).length+"</strong> &nbsp;|&nbsp; Prestados: <strong>"+esp.filter(function(e){return e.est==='P';}).length+"</strong> &nbsp;|&nbsp; Bajas: <strong>"+esp.filter(function(e){return e.est==='B';}).length+"</strong></div><div class='firma-box'><div class='firma'>"+(encNom||encGrado?(encGrado?esc(encGrado)+'<br>':'')+'<br>________________________<br>'+(encNom?esc(encNom):'Encargado de Dependencia'):'Encargado de Dependencia<br><br>________________________<br>Nombre / Grado / Firma')+"</div><div class='firma'>Jefe de Sección<br><br>________________________<br>Nombre / Grado / Firma</div></div><div class='pie'>Generado por ESFOCAR Inventario V5 — "+new Date().toLocaleString('es-CL')+"</div></body></html>";
+  if(!filas)filas='<tr><td colspan="5" style="border:1px solid #000;padding:10px;text-align:center;font-size:9pt">Sin bienes registrados</td></tr>';
+
+  // Bloque encargado izquierda: solo si tiene nombre asignado
+  var firmaEnc=encNom
+    ?('<td style="text-align:center;border:none;padding-top:44pt;width:50%;vertical-align:top">'
+      +'<p style="font-size:11pt;font-weight:bold;margin:0">'+e(encNom)+'</p>'
+      +'<p style="font-size:10pt;margin:0 0 4pt">'+e(encGrado)+'</p>'
+      +'<p style="font-size:10pt;margin:0"><strong>ENCARGADO DE DEPENDENCIA</strong></p>'
+      +'</td>')
+    :('<td style="text-align:center;border:none;padding-top:44pt;width:50%;vertical-align:top">'
+      +'<p style="font-size:10pt;margin:0 0 2pt">&nbsp;</p>'
+      +'<p style="font-size:10pt;margin:0">___________________________</p>'
+      +'<p style="font-size:9pt;color:#555;margin:2pt 0 4pt">Nombre / Grado</p>'
+      +'<p style="font-size:10pt;margin:0"><strong>ENCARGADO DE DEPENDENCIA</strong></p>'
+      +'</td>');
+
+  // Bloque jefe comision derecha: SIEMPRE aparece
+  var firmaJef='<td style="text-align:center;border:none;padding-top:44pt;width:50%;vertical-align:top">'
+    +(jefNom
+      ?('<p style="font-size:11pt;font-weight:bold;margin:0">'+e(jefNom)+'</p>'
+        +'<p style="font-size:10pt;margin:0 0 4pt">'+e(jefGrd)+'</p>')
+      :('<p style="font-size:10pt;margin:0 0 2pt">&nbsp;</p>'
+        +'<p style="font-size:10pt;margin:0">___________________________</p>'
+        +'<p style="font-size:9pt;color:#555;margin:2pt 0 4pt">Nombre / Grado</p>'))
+    +'<p style="font-size:10pt;margin:0"><strong>'+e(jefCargo)+'</strong></p>'
+    +'</td>';
+
+  // Bloque comandante abajo centro: SIEMPRE aparece
+  var firmaCmd='<table style="width:100%;border:none;margin-top:0"><tr>'
+    +'<td style="text-align:center;border:none;padding-top:44pt;width:100%;vertical-align:top">'
+    +(cmdNom
+      ?('<p style="font-size:11pt;font-weight:bold;margin:0">'+e(cmdNom)+'</p>'
+        +'<p style="font-size:10pt;margin:0 0 4pt">'+e(cmdGrd)+'</p>')
+      :('<p style="font-size:10pt;margin:0 0 2pt">&nbsp;</p>'
+        +'<p style="font-size:10pt;margin:0">___________________________</p>'
+        +'<p style="font-size:9pt;color:#555;margin:2pt 0 4pt">Nombre / Grado</p>'))
+    +'<p style="font-size:10pt;margin:0"><strong>COMANDANTE DE GRUPO</strong></p>'
+    +'</td></tr></table>';
+
+  return '<!DOCTYPE html>'
+    +"<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>"
+    +'<head><meta charset="utf-8">'
+    +'<style>'
+    +'body{font-family:Arial,sans-serif;font-size:11pt;margin:2.5cm 2cm;color:#000}'
+    +'p{margin:0 0 4pt 0}'
+    +'table{border-collapse:collapse;width:100%}'
+    +'th{background:#f0f0f0;border:1px solid #000;padding:5px 6px;text-align:center;font-size:9.5pt;font-weight:bold}'
+    +'td{vertical-align:top}'
+    +'</style></head><body>'
+    +'<p style="font-size:14pt;font-weight:bold;text-align:center;text-decoration:underline;margin:0 0 8pt 0">PLANILLA DE INVENTARIO LIBRO N&ordm; 1</p>'
+    +'<p style="font-size:12pt;margin:0 0 14pt 0"><strong>Dependencia:</strong> '+e(dep.nombre)+'</p>'
+    +'<table>'
+    +'<tr>'
+    +'<th style="width:4%">N&ordm;</th>'
+    +'<th style="width:14%">COD SAP</th>'
+    +'<th style="width:17%">CODIGO DE BIEN B.C.U.</th>'
+    +'<th style="width:50%">DESCRIPCION DE LAS ESPECIES</th>'
+    +'<th style="width:15%">OBSERVACIONES</th>'
+    +'</tr>'
+    +filas
+    +'</table>'
+    +'<p style="font-size:14pt;font-weight:bold;text-align:center;margin:22pt 0 8pt 0">LIBRO N&ordm;1</p>'
+    +'<p style="font-size:13pt;font-weight:bold;text-align:center;margin:0 0 0 0">'+e(fechaTxt)+'</p>'
+    +'<table style="width:100%;border:none;margin-top:0"><tr>'+firmaEnc+firmaJef+'</tr></table>'
+    +firmaCmd
+    +'<p style="text-align:center;font-size:8pt;color:#aaa;margin-top:26pt">Generado por ESFOCAR Inventario V5 &mdash; '+new Date().toLocaleString('es-CL')+'</p>'
+    +'</body></html>';
 }
+
 
 function dlPlanillaWord(depId){
   var dep=S.dep.find(function(d){return d.id===depId;});
@@ -573,24 +866,22 @@ function dlPlanillaWord(depId){
   var blob=new Blob(['\ufeff'+contenido],{type:'application/msword;charset=utf-8'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
-  var nombreDep=dep.nombre.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g,'').trim().replace(/\s+/g,'_');
-  a.href=url;a.download='Inventario_'+nombreDep+'_2026.doc';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  var slug=dep.nombre.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g,'').trim().replace(/\s+/g,'_').substring(0,40);
+  a.href=url;a.download='Planilla_'+slug+'.doc';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
   log('Planilla Word: '+dep.nombre);
 }
 
 function dlTodasPlanillasWord(){
-  if(!confirm('Se generarán '+S.dep.length+' documentos Word (uno por dependencia). ¿Continuar?'))return;
+  if(!confirm('Se generarán '+S.dep.length+' documentos Word.\n¿Continuar?'))return;
   var delay=0;
-  S.dep.forEach(function(d){setTimeout(function(){dlPlanillaWord(d.id);},delay);delay+=350;});
-  log('Descarga masiva planillas Word: '+S.dep.length+' dependencias');
+  S.dep.forEach(function(d){setTimeout(function(){dlPlanillaWord(d.id);},delay);delay+=380;});
+  log('Descarga masiva: '+S.dep.length+' planillas');
 }
 
 function dlInventarioUnificadoWord(){
-  var cfg=getCfg();
-  var inst=cfg.institucion||'ESFOCAR Concepción';
-  var anio=cfg.anio||'2026';
-  var fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  var cfg=getCfg()||{};
   var todos=S.esp.map(function(e){return Object.assign({},e,{_src:'C'});});
   if(S.hesp&&S.hesp.length){S.hesp.forEach(function(e){todos.push(Object.assign({},e,{_src:'H'}));});}
   var qu=(S.uniQ||'').toLowerCase();
@@ -598,57 +889,74 @@ function dlInventarioUnificadoWord(){
   var uniEst=S.uniEst||'';
   var uniUnidad=S.uniUnidad||'';
   var fl=todos.filter(function(e){
-    var matchQ=!qu||e.nom.toLowerCase().indexOf(qu)>=0||e.cod.toLowerCase().indexOf(qu)>=0;
-    var matchD=!uniDid||e.did===uniDid;
-    var matchE=!uniEst||e.est===uniEst;
-    var matchU=!uniUnidad||(uniUnidad==='H'?e._src==='H':e._src==='C');
-    return matchQ&&matchD&&matchE&&matchU;
+    var mQ=!qu||e.nom.toLowerCase().indexOf(qu)>=0||e.cod.toLowerCase().indexOf(qu)>=0;
+    var mD=!uniDid||e.did===uniDid;
+    var mE=!uniEst||e.est===uniEst;
+    var mU=!uniUnidad||(uniUnidad==='H'?e._src==='H':e._src==='C');
+    return mQ&&mD&&mE&&mU;
   });
   var filas='';
   fl.forEach(function(e,i){
     var dep=S.dep.find(function(d){return d.id===e.did;});
     var unidad=e._src==='H'?'Esc. Hualpén':'ESFOCAR Conc.';
     var estado=e.est==='A'?'ACTIVO':e.est==='P'?'PRESTADO':'BAJA';
-    filas+='<tr><td style="text-align:center;border:1px solid #000;padding:3px 5px">'+(i+1)+'</td><td style="border:1px solid #000;padding:3px 5px;font-size:8pt">'+unidad+'</td><td style="border:1px solid #000;padding:3px 5px;font-family:Courier New;font-size:8pt">'+esc(e.cod||'')+'</td><td style="border:1px solid #000;padding:3px 5px;font-size:8.5pt">'+esc(e.nom||'')+'</td><td style="border:1px solid #000;padding:3px 5px;font-size:8pt">'+esc(dep?dep.nombre:'—')+'</td><td style="border:1px solid #000;padding:3px 5px;font-family:Courier New;font-size:8pt">'+esc(e.bcu||'')+'</td><td style="text-align:center;border:1px solid #000;padding:3px 5px;font-size:8pt">'+estado+'</td></tr>';
+    filas+='<tr><td style="text-align:center;border:1px solid #000;padding:3px 5px">'+(i+1)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 5px;font-size:8.5pt">'+unidad+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 5px;font-family:Arial Narrow;font-size:8.5pt">'+esc(e.cod||'')+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 5px;font-size:9pt">'+esc(e.nom||'')+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 5px;font-size:8.5pt">'+esc(dep?dep.nombre:'—')+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 5px;font-family:Arial Narrow;font-size:8pt">'+esc(e.bcu||'')+'</td>'
+      +'<td style="text-align:center;border:1px solid #000;padding:3px 5px;font-size:8.5pt">'+estado+'</td>'
+      +'</tr>';
   });
-  var html="<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:10pt;margin:1.5cm}h1{font-size:13pt;text-align:center;text-transform:uppercase;margin-bottom:2px}h2{font-size:11pt;text-align:center;margin-top:2px}.sub{font-size:9pt;text-align:center;color:#555;margin-bottom:14px}table{width:100%;border-collapse:collapse}th{background:#2d5a3d;color:white;font-size:8.5pt;padding:4px 5px;border:1px solid #000;text-transform:uppercase}.resumen{margin-top:10px;font-size:9pt;color:#444}.pie{margin-top:20px;font-size:8pt;color:#888;text-align:center}</style></head><body><h1>"+inst+"</h1><h2>INVENTARIO UNIFICADO — CONCEPCIÓN + HUALPÉN</h2><div class='sub'>Año: <strong>"+anio+"</strong> &nbsp;|&nbsp; Fecha: <strong>"+fecha+"</strong> &nbsp;|&nbsp; Total: <strong>"+fl.length+"</strong></div><table><tr><th style='width:4%'>N°</th><th style='width:11%'>Unidad</th><th style='width:12%'>Código</th><th style='width:22%'>Nombre del Bien</th><th style='width:20%'>Dependencia</th><th style='width:13%'>BCU/SAP</th><th style='width:8%'>Estado</th></tr>"+(filas||"<tr><td colspan='7' style='text-align:center;padding:10px;border:1px solid #000'>Sin registros</td></tr>")+"</table><div class='resumen'>Total: <strong>"+fl.length+"</strong> &nbsp;|&nbsp; ESFOCAR Conc.: <strong>"+fl.filter(function(e){return e._src==='C';}).length+"</strong> &nbsp;|&nbsp; Esc. Hualpén: <strong>"+fl.filter(function(e){return e._src==='H';}).length+"</strong> &nbsp;|&nbsp; Activos: <strong>"+fl.filter(function(e){return e.est==='A';}).length+"</strong></div><div style='margin-top:50px;display:flex;justify-content:space-around'><div style='text-align:center;width:40%;border-top:1px solid #000;padding-top:6px;font-size:9pt'>Jefe ESFOCAR Concepción<br><br>________________________<br>Nombre / Grado / Firma</div><div style='text-align:center;width:40%;border-top:1px solid #000;padding-top:6px;font-size:9pt'>Comandante Esc. Hualpén<br><br>________________________<br>Nombre / Grado / Firma</div></div><div class='pie'>Generado por ESFOCAR Inventario V5 — "+new Date().toLocaleString('es-CL')+"</div></body></html>";
+  var ciudad=cfg.ciudad||'CONCEPCION';
+  var jefNom=cfg.jefNom||'';var jefGrd=cfg.jefGrd||'';var jefCargo=cfg.jefCargo||'JEFE COMISION INVENTARIO';
+  var cmdNom=cfg.cmdNom||'';var cmdGrd=cfg.cmdGrd||'';
+  var meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  var hoy=new Date();
+  var fechaTxt=ciudad+', '+String(hoy.getDate()).padStart(2,'0')+' DE '+meses[hoy.getMonth()]+' DEL '+hoy.getFullYear();
+  var html="<!DOCTYPE html><html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>"
+    +"<head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:10pt;margin:1.5cm;color:#000}table{border-collapse:collapse;width:100%}th{background:#f0f0f0;border:1px solid #000;padding:4px 5px;font-size:8.5pt;text-align:center}</style></head><body>"
+    +"<p style='font-size:14pt;font-weight:bold;text-align:center;text-decoration:underline;margin:0 0 6pt'>INVENTARIO UNIFICADO — ESFOCAR</p>"
+    +"<p style='text-align:center;font-size:11pt;margin:0 0 10pt'>CONCEPCIÓN + ESCUADRÓN HUALPÉN</p>"
+    +"<table><tr><th style='width:4%'>N°</th><th style='width:10%'>Unidad</th><th style='width:12%'>Código</th><th style='width:22%'>Nombre</th><th style='width:20%'>Dependencia</th><th style='width:14%'>BCU/SAP</th><th style='width:8%'>Estado</th></tr>"
+    +(filas||"<tr><td colspan='7' style='text-align:center;padding:10px;border:1px solid #000'>Sin registros</td></tr>")
+    +"</table>"
+    +"<p style='font-size:9pt;margin:10pt 0 0'>Total: <strong>"+fl.length+"</strong> bienes</p>"
+    +"<p style='font-size:13pt;font-weight:bold;text-align:center;margin:22pt 0 16pt'>"+esc(fechaTxt)+"</p>"
+    +"<table style='width:100%;border:none'><tr>"
+    +"<td style='text-align:center;border:none;padding-top:38pt;width:50%'>"+(jefNom?"<strong>"+esc(jefNom)+"</strong><br>"+esc(jefGrd)+"<br><br><strong>"+esc(jefCargo)+"</strong>":"<br><br>_________________________<br><strong>JEFE COMISION INVENTARIO</strong>")+"</td>"
+    +"<td style='text-align:center;border:none;padding-top:38pt;width:50%'>"+(cmdNom?"<strong>"+esc(cmdNom)+"</strong><br>"+esc(cmdGrd)+"<br><br><strong>COMANDANTE DE GRUPO</strong>":"<br><br>_________________________<br><strong>COMANDANTE DE GRUPO</strong>")+"</td>"
+    +"</tr></table>"
+    +"<p style='text-align:center;font-size:8pt;color:#888;margin-top:24pt'>Generado por ESFOCAR Inventario V5 — "+new Date().toLocaleString('es-CL')+"</p>"
+    +"</body></html>";
   var blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;a.download='InventarioUnificado_ESFOCAR_'+anio+'.doc';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='InventarioUnificado_ESFOCAR_'+(cfg.anio||'2026')+'.doc';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
   log('Word unificado: '+fl.length+' bienes');
 }
 
 function dlInventarioUnificadoCSV(){
   var todos=S.esp.map(function(e){return Object.assign({},e,{_src:'C'});});
   if(S.hesp&&S.hesp.length){S.hesp.forEach(function(e){todos.push(Object.assign({},e,{_src:'H'}));});}
-  var qu=(S.uniQ||'').toLowerCase();
-  var uniDid=S.uniD?parseInt(S.uniD):0;
-  var uniEst=S.uniEst||'';
-  var uniUnidad=S.uniUnidad||'';
-  var fl=todos.filter(function(e){
-    var matchQ=!qu||e.nom.toLowerCase().indexOf(qu)>=0||e.cod.toLowerCase().indexOf(qu)>=0;
-    var matchD=!uniDid||e.did===uniDid;
-    var matchE=!uniEst||e.est===uniEst;
-    var matchU=!uniUnidad||(uniUnidad==='H'?e._src==='H':e._src==='C');
-    return matchQ&&matchD&&matchE&&matchU;
-  });
-  var cfg=getCfg();
+  var cfg=getCfg()||{};
   var lines=['Unidad,Código,Nombre,Dependencia,BCU/SAP,N° Serie,Estado,Descripción'];
-  fl.forEach(function(e){
+  todos.forEach(function(e){
     var dep=S.dep.find(function(d){return d.id===e.did;});
     var unidad=e._src==='H'?'Esc. Hualpén':'ESFOCAR Conc.';
     var estado=e.est==='A'?'ACTIVO':e.est==='P'?'PRESTADO':'BAJA';
     lines.push([unidad,e.cod||'','"'+(e.nom||'').replace(/"/g,"'")+'"','"'+(dep?dep.nombre:'').replace(/"/g,"'")+'"',e.bcu||'',e.serie||'',estado,'"'+(e.obs||'').replace(/"/g,"'").replace(/\n/g,' ')+'"'].join(','));
   });
   var blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
   a.href=url;a.download='InventarioUnificado_'+(cfg.anio||'2026')+'.csv';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  log('CSV unificado: '+fl.length+' bienes');
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
+  log('CSV unificado');
 }
+
 
 
 function vDep(id){var dep=S.dep.find(function(d){return d.id===id;});if(!dep)return;var items=S.esp.filter(function(e){return e.did===id;});var h='<button class="btn bl sm" onclick="rDep()" style="margin-bottom:14px">&#8592; Volver</button><h2 style="color:#c8e6cd;margin-bottom:16px">['+String(dep.id).padStart(2,'0')+'] '+esc(dep.nombre)+'</h2>';h+='<div class="tWrap"><table><tr><th>C\u00F3digo</th><th>Nombre</th><th>Estado</th><th>Custodio</th></tr>';for(var i=0;i<items.length;i++){var e=items[i];var cf=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;h+='<tr><td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(e.cod)+'</td><td style="font-size:.79rem">'+esc(e.nom)+'</td><td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td><td style="font-size:.75rem;color:'+(cf?'#6ab87a':'#6a8570')+'">'+esc(cf?cf.nom:'Sin asignar')+'</td></tr>';}document.getElementById('cnt').innerHTML=h+'</table></div>';}
