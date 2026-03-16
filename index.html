@@ -1724,7 +1724,7 @@ function bajasHistOne(id){
   if(!r)return;
   var mot=prompt('Motivo de baja para:\n'+r.nom+'\n(BCU: '+r.bcu+')\n\nEjemplo: Obsolescencia, Daño irreparable, Pérdida...','Obsolescencia');
   if(mot===null)return;
-  _traslToBaja(r, mot||'Sin motivo especificado');
+  _traslToPbaj(r, mot||'Sin motivo especificado');
   sv();rHist();
 }
 
@@ -1766,7 +1766,7 @@ function bajasHistMas(){
   chks.forEach(function(c){
     var id=parseInt(c.getAttribute('data-id'));
     var r=(S.hist||[]).find(function(x){return x.id===id;});
-    if(r&&!r.trasl&&!r.traslHual&&!r.bajahist){_traslToBaja(r, mot||'Sin motivo');cnt++;}
+    if(r&&!r.trasl&&!r.traslHual&&!r.bajahist){_traslToPbaj(r, mot||'Sin motivo');cnt++;}
   });
   alert(cnt+' especies enviadas al módulo de Bajas.');
   sv();rHist();
@@ -1806,25 +1806,29 @@ function _traslToHual(r){
   log('→ Hualpén: '+r.nom+' ('+r.bcu+')');
 }
 
-function _traslToBaja(r, mot){
-  if(!S.baj)S.baj=[];
+function _traslToPbaj(r, mot){
+  if(!S.pbaj)S.pbaj=[];
   var today=new Date().toISOString().split('T')[0];
-  // Buscar si existe en S.esp
+  var origen=r._src==='H'?'Hualpén':r._src==='C'?'Concepción':'Histórico';
+  var newId=S.pbaj.length?Math.max.apply(null,S.pbaj.map(function(b){return b.id;}))+1:1;
   var eObj=S.esp&&S.esp.find(function(e){return e.bcu===r.bcu||e.cod===r.bcu;});
-  if(eObj){eObj.est='B';eObj.cid=null;}
-  var newId=S.baj.length?Math.max.apply(null,S.baj.map(function(b){return b.id;}))+1:1;
-  S.baj.push({id:newId,eid:eObj?eObj.id:null,bcu:r.bcu,nom:r.nom,mot:mot,
-    fec:today,fecha:today,aut:'Traslado desde libro histórico',
-    obs:'Baja originada desde libro histórico. BCU: '+r.bcu+(r.serie?' — Serie: '+r.serie:''),
-    marca:r.marca,ub:r.ub,nres:'',res:''});
+  S.pbaj.push({
+    id:newId,
+    eid:eObj?eObj.id:null,
+    cod:r.bcu||r.cod||'',
+    nom:r.nom||'',
+    mot:mot||'Sin motivo',
+    fec:today,
+    nres:'',
+    origen:origen,
+    histid:r.id||null,
+    obs:'Propuesta desde '+origen+'. BCU:'+(r.bcu||'')+(r.serie?' — Serie:'+r.serie:'')
+  });
   r.bajahist=true;
   r.bajafec=today;
-  log('Baja hist: '+r.nom+' ('+r.bcu+') — '+mot);
+  log('→ Prop.Baja: '+(r.nom||'')+(r.bcu?' ('+r.bcu+')':''));
 }
 
-
-
-// ─── Funciones faltantes ───────────────────────────
 function vrPdf(nombre){
   // Intenta abrir el PDF desde la misma carpeta que el archivo HTML
   // El usuario debe tener el PDF junto al HTML
@@ -2823,214 +2827,166 @@ function importPbajMas(){
 }
 function rPbaj(){
   if(!S.pbaj)S.pbaj=[];
-  var PER=25;
+  var PER=30;
   var q=(S.pbajQ||'').toLowerCase();
   var did=S.pbajD?parseInt(S.pbajD):0;
+  var filtOrigen=S.pbajOrigen||'';
   var fl=S.pbaj.filter(function(p){
     var matchQ=!q||(p.cod.toLowerCase().indexOf(q)>=0||p.nom.toLowerCase().indexOf(q)>=0||((p.mot||'').toLowerCase().indexOf(q)>=0));
-    var e=S.esp.find(function(x){return x.id===p.eid;});
-    var matchD=!did||( e&&e.did===did);
-    return matchQ&&matchD;
+    var eObj=S.esp&&S.esp.find(function(x){return x.id===p.eid;});
+    var matchD=!did||(eObj&&eObj.did===did);
+    var matchO=!filtOrigen||(p.origen||'Histórico')===filtOrigen;
+    return matchQ&&matchD&&matchO;
   });
-  var pg=Math.max(1,Math.ceil(fl.length/PER));if(S.pg>pg)S.pg=pg;
-  var sl=fl.slice((S.pg-1)*PER,S.pg*PER);
+  var pg=Math.max(1,Math.ceil(fl.length/PER));if((S.pbajPg||1)>pg)S.pbajPg=1;
+  var curPg=S.pbajPg||1;
+  var sl=fl.slice((curPg-1)*PER,curPg*PER);
+
   var depOpts='<option value="">Todas las dependencias</option>';
-  for(var i=0;i<S.dep.length;i++)depOpts+='<option value="'+S.dep[i].id+'"'+((S.pbajD&&parseInt(S.pbajD)===S.dep[i].id)?' selected':'')+'>'+esc(S.dep[i].nombre)+'</option>';
+  S.dep.forEach(function(d){depOpts+='<option value="'+d.id+'"'+((S.pbajD&&parseInt(S.pbajD)===d.id)?' selected':'')+'>'+esc(d.nombre)+'</option>';});
+
+  // Stats por motivo
+  var motivos={};
+  S.pbaj.forEach(function(p){var m=p.mot||'Sin motivo';motivos[m]=(motivos[m]||0)+1;});
+  var origenes={};
+  S.pbaj.forEach(function(p){var o=p.origen||'Histórico';origenes[o]=(origenes[o]||0)+1;});
+
+  var h='<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+  h+='<div style="width:50px;height:50px;border-radius:50%;background:#4a3010;display:flex;align-items:center;justify-content:center;font-size:1.8rem">📋</div>';
+  h+='<div><div style="font-size:1.1rem;font-weight:800;color:#c8e6cd">Propuestas de Baja</div>';
+  h+='<div style="font-size:.75rem;color:#6a8570">Bienes propuestos para dar de baja — Proceso 2026</div></div>';
+  h+='<div style="margin-left:auto;display:flex;gap:8px">';
+  h+='<button class="btn gn" onclick="oAddPbaj()">➕ Agregar</button>';
+  h+='<button class="btn bl" onclick="oMdl(\'mPbajMas\');document.getElementById(\'pbajMasPrev\').innerHTML=\'\';document.getElementById(\'pbajMasBtn\').disabled=true">📥 Masiva</button>';
+  h+='<button class="btn tl" onclick="imprimirPbaj()">🖨️ Imprimir relación</button>';
+  h+='</div></div>';
+
+  // Tarjetas stats
+  h+='<div class="sGrid" style="margin-bottom:16px">';
+  h+='<div class="sCd w"><div class="ico">📋</div><div class="val">'+S.pbaj.length+'</div><div class="lbl">Total propuestas</div></div>';
+  h+='<div class="sCd"><div class="ico">🔍</div><div class="val">'+fl.length+'</div><div class="lbl">Filtradas</div></div>';
+  Object.keys(origenes).forEach(function(o){
+    var ico=o==='Histórico'?'📚':o==='Hualpén'?'🏠':'🏫';
+    h+='<div class="sCd"><div class="ico">'+ico+'</div><div class="val">'+origenes[o]+'</div><div class="lbl">Desde '+esc(o)+'</div></div>';
+  });
+  h+='</div>';
+
+  // Filtros
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">';
+  h+='<input type="text" placeholder="🔍 Código, nombre, motivo..." value="'+esc(S.pbajQ||'')+'" oninput="S.pbajQ=this.value;S.pbajPg=1;rPbaj()" style="flex:2;min-width:180px">';
+  h+='<select onchange="S.pbajD=this.value;S.pbajPg=1;rPbaj()" style="flex:1;min-width:160px">'+depOpts+'</select>';
+  h+='<select onchange="S.pbajOrigen=this.value;S.pbajPg=1;rPbaj()" style="min-width:130px">';
+  h+='<option value=""'+((!filtOrigen)?' selected':'')+'>Todos los orígenes</option>';
+  h+='<option value="Histórico"'+(filtOrigen==='Histórico'?' selected':'')+'>📚 Histórico</option>';
+  h+='<option value="Concepción"'+(filtOrigen==='Concepción'?' selected':'')+'>🏫 Concepción</option>';
+  h+='<option value="Hualpén"'+(filtOrigen==='Hualpén'?' selected':'')+'>🏠 Hualpén</option>';
+  h+='</select></div>';
+
+  // Tabla
   var rows='';
-  for(var j=0;j<sl.length;j++){
-    var p=sl[j];
-    var e=S.esp.find(function(x){return x.id===p.eid;});
-    var dep=e?S.dep.find(function(d){return d.id===e.did;})||{nombre:'—'}:{nombre:'—'};
+  sl.forEach(function(p){
+    var eObj=S.esp&&S.esp.find(function(x){return x.id===p.eid;});
+    var dep=eObj?S.dep.find(function(d){return d.id===eObj.did;})||{nombre:'—'}:{nombre:'—'};
+    var origenBadge='';
+    var o=p.origen||'Histórico';
+    if(o==='Histórico')origenBadge='<span class="bA" style="background:#1a2a4a;color:#8ab8d5;border:1px solid #2a3a5a">📚 Hist.</span>';
+    else if(o==='Hualpén')origenBadge='<span class="bA" style="background:#1a2a4a;color:#70a4d4;border:1px solid #2a3a5a">🏠 Hual.</span>';
+    else origenBadge='<span class="bA" style="background:#1a3a20;color:#6ab87a;border:1px solid #2a5030">🏫 Conc.</span>';
     rows+='<tr>';
     rows+='<td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(p.cod)+'</td>';
-    rows+='<td style="font-size:.79rem">'+esc(p.nom)+'</td>';
-    rows+='<td style="font-size:.74rem">'+esc(dep.nombre)+'</td>';
+    rows+='<td style="font-size:.79rem;font-weight:600">'+esc(p.nom)+'</td>';
+    rows+='<td style="font-size:.74rem;color:#8fb89a">'+esc(dep.nombre)+'</td>';
     rows+='<td style="font-size:.74rem;color:#d4aa30">'+esc(p.mot||'—')+'</td>';
-    rows+='<td style="font-size:.71rem">'+esc(p.nres||'—')+'</td>';
+    rows+='<td>'+origenBadge+'</td>';
+    rows+='<td style="font-size:.71rem;color:#a8d5b5">'+esc(p.nres||'—')+'</td>';
     rows+='<td style="font-size:.71rem;color:#6a8570">'+esc(p.fec||'—')+'</td>';
-    rows+='<td style="white-space:nowrap"><button class="btn bl sm" onclick="oEditPbaj('+p.id+')" title="Editar">✏️</button> <button class="btn rd sm" onclick="delPbaj('+p.id+')" title="Eliminar">🗑</button></td>';
+    rows+='<td style="white-space:nowrap">';
+    rows+='<button class="btn bl sm" onclick="oEditPbaj('+p.id+')" title="Editar">✏️</button> ';
+    rows+='<button class="btn rd sm" onclick="delPbaj('+p.id+')" title="Eliminar">🗑️</button>';
+    rows+='</td>';
     rows+='</tr>';
-  }
-  // Estadísticas por motivo
-  var motivos={};
-  for(var k=0;k<S.pbaj.length;k++){var m=S.pbaj[k].mot||'Sin motivo';motivos[m]=(motivos[m]||0)+1;}
-  var motCards='';
-  var motList=Object.keys(motivos);
-  for(var mi=0;mi<motList.length;mi++){
-    motCards+='<div class="sCd" style="flex:0 0 auto;min-width:140px"><div class="ico" style="font-size:.85rem">📋</div><div class="val">'+motivos[motList[mi]]+'</div><div class="lbl" style="font-size:.65rem">'+esc(motList[mi])+'</div></div>';
-  }
-  var h='<div class="sGrid">';
-  h+='<div class="sCd w"><div class="ico">📋</div><div class="val">'+S.pbaj.length+'</div><div class="lbl">Total Propuestas</div></div>';
-  h+='<div class="sCd" style="background:rgba(212,170,48,.13)"><div class="ico">📦</div><div class="val">'+fl.length+'</div><div class="lbl">Filtrados</div></div>';
-  h+=motCards;
-  h+='</div>';
+  });
+
   h+='<div class="tWrap">';
-  h+='<div class="tHead" style="display:flex;justify-content:space-between;align-items:center">';
-  h+='<div><h3>📋 Propuestas de Baja — Proceso 2026</h3><span style="font-size:.74rem;color:#6a8570">Bienes propuestos para dar de baja en el proceso de inventario 2026</span></div>';
-  h+='<div style="display:flex;gap:.5rem"><button class="btn gn" onclick="oAddPbaj()">+ Agregar</button><button class="btn" onclick="oMdl(\'mPbajMas\');document.getElementById(\'pbajMasPrev\').innerHTML=\'\';document.getElementById(\'pbajMasBtn\').disabled=true">📥 Carga masiva</button></div>';
-  h+='</div>';
-  h+='<div class="esSrch"><input type="text" placeholder="🔍 Código, nombre o motivo..." value="'+esc(S.pbajQ||'')+'" oninput="S.pbajQ=this.value;S.pg=1;rPbaj()"><select onchange="S.pbajD=this.value;S.pg=1;rPbaj()">'+depOpts+'</select></div>';
-  h+='<table><tr><th>Código</th><th>Nombre</th><th>Dependencia</th><th>Motivo</th><th>Resolución</th><th>Fecha</th><th></th></tr>'+(rows||'<tr><td colspan="7" class="empty">📋 No hay propuestas de baja registradas. Use "+ Agregar" o "Carga masiva".</td></tr>')+'</table>';
-  if(pg>1)h+='<div class="pgCtrl"><button onclick="S.pg=Math.max(1,S.pg-1);rPbaj()">◀ Ant.</button><span>Pág. '+S.pg+' / '+pg+'</span><button onclick="S.pg=Math.min('+pg+',S.pg+1);rPbaj()">Sig. ▶</button></div>';
+  h+='<table><tr><th>Código</th><th>Nombre del Bien</th><th>Dependencia</th><th>Motivo</th><th>Origen</th><th>Resolución</th><th>Fecha</th><th></th></tr>';
+  h+=(rows||'<tr><td colspan="8" class="empty">📋 No hay propuestas. Use "➕ Agregar" para ingresar o traslade desde el Registro Histórico.</td></tr>');
+  h+='</table>';
+  if(pg>1)h+='<div class="pgCtrl"><button onclick="S.pbajPg=Math.max(1,(S.pbajPg||1)-1);rPbaj()">◀ Ant.</button><span>Pág. '+(S.pbajPg||1)+' / '+pg+' — '+fl.length+' registros</span><button onclick="S.pbajPg=Math.min('+pg+',(S.pbajPg||1)+1);rPbaj()">Sig. ▶</button></div>';
   h+='</div>';
   document.getElementById('cnt').innerHTML=h;
 }
 
-// ============================================================
-// MÓDULO: BIENES SIN ENCONTRAR (bsf)
-// ============================================================
-function qEspBsf(q){
-  var lst=document.getElementById('bsfSug');
-  var prev=document.getElementById('bsfPreview');
-  document.getElementById('bsfEid').value='';
-  prev.style.display='none';
-  if(!q||q.length<2){lst.innerHTML='';return;}
-  var r=S.esp.filter(function(e){
-    return e.est!=='B'&&(e.cod.toLowerCase().indexOf(q.toLowerCase())>=0||e.nom.toLowerCase().indexOf(q.toLowerCase())>=0);
-  }).slice(0,12);
-  if(!r.length){lst.innerHTML='<div class="qi" style="color:#6a8570">Sin resultados</div>';return;}
-  var h='';
-  for(var i=0;i<r.length;i++){
-    var e=r[i];
-    var dep=S.dep.find(function(d){return d.id===e.did;})||{nombre:''};
-    var yaBsf=S.bsf&&S.bsf.find(function(b){return b.eid===e.id;});
-    h+='<div class="qi" onclick="selEspBsf('+e.id+')" style="'+(yaBsf?'color:#e07070':'')+'"><b>'+esc(e.cod)+'</b> — '+esc(e.nom)+(yaBsf?' ⚠ Ya registrado':'')+'<br><span style="color:#6a8570;font-size:.7rem">'+esc(dep.nombre)+'</span></div>';
-  }
-  lst.innerHTML=h;
+function imprimirPbaj(){
+  if(!S.pbaj||!S.pbaj.length){alert('No hay propuestas de baja registradas.');return;}
+  var cfg=getCfg()||{};
+  var meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  var hoy=new Date();
+  var fecha=(cfg.ciudad||'CONCEPCION')+', '+String(hoy.getDate()).padStart(2,'0')+' DE '+meses[hoy.getMonth()]+' DEL '+hoy.getFullYear();
+  function e(s){if(!s&&s!==0)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  var filas='';
+  S.pbaj.forEach(function(p,i){
+    filas+='<tr>'
+      +'<td style="text-align:center;border:1px solid #000;padding:3px 5px;font-size:10pt">'+(i+1)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 6px;font-family:Arial Narrow,Arial;font-size:9pt">'+e(p.cod)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 6px;font-size:10pt">'+e(p.nom)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 6px;font-size:9.5pt">'+e(p.mot)+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 6px;font-size:9pt;text-align:center">'+e(p.origen||'—')+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 6px;font-size:9pt;text-align:center">'+e(p.nres||'—')+'</td>'
+      +'<td style="border:1px solid #000;padding:3px 6px;font-size:9pt;text-align:center">'+e(p.fec||'—')+'</td>'
+      +'</tr>';
+  });
+  var jefNom=cfg.jefNom||'';var jefGrd=cfg.jefGrd||'';var jefCargo=cfg.jefCargo||'JEFE COMISION INVENTARIO';
+  var cmdNom=cfg.cmdNom||'';var cmdGrd=cfg.cmdGrd||'';
+  var firmaJef=jefNom
+    ?('<strong>'+e(jefNom)+'</strong><br>'+e(jefGrd)+'<br><br><strong>'+e(jefCargo)+'</strong>')
+    :('___________________________<br><span style="font-size:8pt;color:#888">Nombre / Grado</span><br><br><strong>'+e(jefCargo)+'</strong>');
+  var firmaCmd=cmdNom
+    ?('<strong>'+e(cmdNom)+'</strong><br>'+e(cmdGrd)+'<br><br><strong>COMANDANTE DE GRUPO</strong>')
+    :('___________________________<br><span style="font-size:8pt;color:#888">Nombre / Grado</span><br><br><strong>COMANDANTE DE GRUPO</strong>');
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8">'
+    +'<style>'
+    +'body{font-family:Arial,sans-serif;font-size:11pt;margin:2cm;color:#000}'
+    +'table{border-collapse:collapse;width:100%}'
+    +'th{background:#f0f0f0;border:1px solid #000;padding:5px 6px;font-size:9.5pt;text-align:center;font-weight:bold}'
+    +'td{vertical-align:top}'
+    +'.btn-print{display:block;margin:16px auto;padding:9px 28px;font-size:11pt;cursor:pointer;background:#2d5a3d;color:white;border:none;border-radius:7px}'
+    +'@media print{.btn-print{display:none}}'
+    +'</style></head><body>'
+    +'<p style="font-size:14pt;font-weight:bold;text-align:center;text-decoration:underline;margin:0 0 4pt">RELACIÓN DE PROPUESTAS DE BAJA</p>'
+    +'<p style="font-size:12pt;font-weight:bold;text-align:center;text-decoration:underline;margin:0 0 4pt">PROCESO DE INVENTARIO 2026</p>'
+    +'<p style="font-size:11pt;text-align:center;margin:0 0 14pt">'+e(cfg.institucion||'ESFOCAR Concepción')+'</p>'
+    +'<table>'
+    +'<tr>'
+    +'<th style="width:4%">N°</th>'
+    +'<th style="width:16%">Código B.C.U.</th>'
+    +'<th style="width:28%">Nombre del Bien</th>'
+    +'<th style="width:18%">Motivo de Baja</th>'
+    +'<th style="width:10%">Origen</th>'
+    +'<th style="width:12%">Resolución</th>'
+    +'<th style="width:12%">Fecha</th>'
+    +'</tr>'
+    +filas
+    +'</table>'
+    +'<p style="font-size:10pt;margin:10pt 0 0">Total de bienes propuestos: <strong>'+S.pbaj.length+'</strong></p>'
+    +'<p style="font-size:13pt;font-weight:bold;text-align:center;margin:30pt 0 0">'+e(fecha)+'</p>'
+    +'<table style="width:100%;border:none"><tr>'
+    +'<td style="text-align:center;border:none;padding-top:44pt;width:50%;vertical-align:top">'+firmaJef+'</td>'
+    +'<td style="text-align:center;border:none;padding-top:44pt;width:50%;vertical-align:top">'+firmaCmd+'</td>'
+    +'</tr></table>'
+    +'<p style="text-align:center;font-size:8pt;color:#aaa;margin-top:20pt">Generado por ESFOCAR Inventario V5 &mdash; '+hoy.toLocaleString('es-CL')+'</p>'
+    +'<button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>'
+    +'</body></html>';
+  var win=window.open('','_blank','width=960,height=720');
+  if(!win){alert('Permite ventanas emergentes para imprimir.');return;}
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},500);
+  log('Impresión propuestas de baja: '+S.pbaj.length+' registros');
 }
-function selEspBsf(id){
-  var e=S.esp.find(function(x){return x.id===id;});
-  if(!e)return;
-  document.getElementById('bsfEid').value=id;
-  document.getElementById('bsfCodQ').value=e.cod+' — '+e.nom;
-  document.getElementById('bsfSug').innerHTML='';
-  var dep=S.dep.find(function(d){return d.id===e.did;})||{nombre:'—'};
-  var fun=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;
-  var prev=document.getElementById('bsfPreview');
-  prev.style.display='block';
-  prev.innerHTML='<b>'+esc(e.cod)+'</b> — '+esc(e.nom)+'<br>Dependencia: '+esc(dep.nombre)+(fun?' | Custodio: '+esc(fun.nom):'')+(e.bcu?' | BCU: '+esc(e.bcu):'');
-}
-function oAddBsf(){
-  S.bsfEdit=null;
-  document.getElementById('mBsfT').textContent='🔍 Registrar Bien sin Encontrar';
-  ['bsfCodQ','bsfUb','bsfObs','bsfFunQ'].forEach(function(i){document.getElementById(i).value='';});
-  ['bsfEid','bsfFid'].forEach(function(i){document.getElementById(i).value='';});
-  document.getElementById('bsfSug').innerHTML='';
-  document.getElementById('bsfFunL').innerHTML='';
-  document.getElementById('bsfPreview').style.display='none';
-  document.getElementById('bsfFec').value=new Date().toISOString().slice(0,10);
-  oMdl('mBsf');
-}
-function oEditBsf(id){
-  var b=S.bsf.find(function(x){return x.id===id;});
-  if(!b)return;
-  S.bsfEdit=id;
-  document.getElementById('mBsfT').textContent='✏️ Editar — Bien sin Encontrar';
-  var e=S.esp.find(function(x){return x.id===b.eid;});
-  document.getElementById('bsfEid').value=b.eid;
-  document.getElementById('bsfCodQ').value=e?(e.cod+' — '+e.nom):'ID '+b.eid;
-  if(e)selEspBsf(b.eid);
-  document.getElementById('bsfUb').value=b.ub||'';
-  document.getElementById('bsfFec').value=b.fec||'';
-  document.getElementById('bsfObs').value=b.obs||'';
-  document.getElementById('bsfFid').value=b.fid||'';
-  var fun=b.fid?S.fun.find(function(f){return f.id===b.fid;}):null;
-  document.getElementById('bsfFunQ').value=fun?fun.nom:'';
-  oMdl('mBsf');
-}
-function saveBsf(){
-  var eid=parseInt(document.getElementById('bsfEid').value);
-  if(!eid){alert('Debe seleccionar un bien del listado.');return;}
-  var ub=document.getElementById('bsfUb').value.trim();
-  var fec=document.getElementById('bsfFec').value;
-  var obs=document.getElementById('bsfObs').value.trim();
-  var fid=parseInt(document.getElementById('bsfFid').value)||null;
-  var e=S.esp.find(function(x){return x.id===eid;});
-  if(!S.bsf)S.bsf=[];
-  if(S.bsfEdit!=null){
-    var b=S.bsf.find(function(x){return x.id===S.bsfEdit;});
-    if(b){b.eid=eid;b.ub=ub;b.fec=fec;b.obs=obs;b.fid=fid;}
-    log('Editó BSF: '+(e?e.cod:'ID'+eid));
-  }else{
-    var dup=S.bsf.find(function(x){return x.eid===eid;});
-    if(dup&&!confirm('⚠️ Este bien ya figura como "sin encontrar".\n¿Desea agregar otro registro igualmente?'))return;
-    S.bsf.push({id:nid(S.bsf),eid:eid,cod:e?e.cod:'',nom:e?e.nom:'',ub:ub,fec:fec,obs:obs,fid:fid,ts:new Date().toLocaleString('es-CL'),user:S.user});
-    log('BSF: '+(e?e.cod:'ID'+eid));
-  }
-  sv();cMdl('mBsf');rBsf();
-}
-function delBsf(id){
-  var b=S.bsf.find(function(x){return x.id===id;});
-  if(!b||!confirm('¿Eliminar registro de "'+b.nom+'" de la lista sin encontrar?'))return;
-  S.bsf=S.bsf.filter(function(x){return x.id!==id;});
-  log('Eliminó BSF: '+b.cod);
-  sv();rBsf();
-}
-function dlPlantillaBsf(){
-  var csv='cod,ub,fec,obs\nESF-MUE-001,Sala 3 Piso 2,2026-03-01,Buscado en toda la dependencia\n';
-  var a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='Plantilla_BienSinEncontrar_2026.csv';
-  a.click();
-}
-window._bsfMasRows=[];
-function parseBsfMas(input){
-  var f=input.files[0];if(!f)return;
-  var prev=document.getElementById('bsfMasPrev');
-  prev.innerHTML='<span style="color:#6a8570">Leyendo archivo...</span>';
-  document.getElementById('bsfMasBtn').disabled=true;
-  window._bsfMasRows=[];
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    var lines=ev.target.result.split(/\r?\n/).filter(function(l){return l.trim();});
-    if(!lines.length){prev.innerHTML='<span style="color:#e07070">Archivo vacío.</span>';return;}
-    var hdr=lines[0].split(',').map(function(h){return h.trim().toLowerCase().replace(/"/g,'');});
-    var iCod=hdr.indexOf('cod');var iUb=hdr.indexOf('ub');
-    var iFec=hdr.indexOf('fec');var iObs=hdr.indexOf('obs');
-    var defFec=document.getElementById('bsfMasFec').value||new Date().toISOString().slice(0,10);
-    var defFid=parseInt(document.getElementById('bsfMasFid').value)||null;
-    var rows=[];
-    for(var i=1;i<lines.length;i++){
-      var cols=lines[i].split(',').map(function(c){return c.replace(/^"|"$/g,'').trim();});
-      var cod=(iCod>=0?cols[iCod]:'').toUpperCase();
-      if(!cod)continue;
-      var esp=S.esp.find(function(e){return e.cod.toUpperCase()===cod;});
-      var ub=(iUb>=0?cols[iUb]:'')||'';
-      var fec=(iFec>=0&&cols[iFec])?cols[iFec]:defFec;
-      var obs=(iObs>=0?cols[iObs]:'')||'';
-      var yaReg=S.bsf&&S.bsf.find(function(b){return esp&&b.eid===esp.id;});
-      rows.push({cod:cod,esp:esp,ub:ub,fec:fec,obs:obs,fid:defFid,dup:!!yaReg,ok:!!esp});
-    }
-    window._bsfMasRows=rows;
-    var h='<table style="width:100%;font-size:.72rem;border-collapse:collapse">';
-    h+='<tr style="color:#6a8570"><th>Código</th><th>Nombre</th><th>Ult. Ubicación</th><th>Estado</th></tr>';
-    for(var j=0;j<rows.length;j++){
-      var r=rows[j];
-      var st=r.ok?(r.dup?'<span style="color:#d4aa30">⚠ Ya registrado</span>':'<span style="color:#6ab87a">✓ OK</span>'):'<span style="color:#e07070">✗ No en inventario</span>';
-      h+='<tr style="border-bottom:1px solid #1e3a1e"><td style="font-family:monospace">'+esc(r.cod)+'</td><td>'+esc(r.esp?r.esp.nom:'—')+'</td><td>'+esc(r.ub||'—')+'</td><td>'+st+'</td></tr>';
-    }
-    h+='</table>';
-    var okCount=rows.filter(function(r){return r.ok;}).length;
-    prev.innerHTML='<div style="color:#6a8570;font-size:.72rem;margin-bottom:.4rem">'+rows.length+' filas | <span style="color:#6ab87a">'+okCount+' válidas</span> | <span style="color:#e07070">'+(rows.length-okCount)+' no encontradas en inventario</span></div>'+h;
-    document.getElementById('bsfMasBtn').disabled=(okCount===0);
-  };
-  reader.readAsText(f,'utf-8');
-}
-function importBsfMas(){
-  var rows=window._bsfMasRows||[];
-  if(!rows.length)return;
-  if(!S.bsf)S.bsf=[];
-  var imp=0;
-  for(var i=0;i<rows.length;i++){
-    var r=rows[i];
-    if(!r.ok)continue;
-    S.bsf.push({id:nid(S.bsf),eid:r.esp.id,cod:r.esp.cod,nom:r.esp.nom,ub:r.ub||'',fec:r.fec,obs:r.obs||'',fid:r.fid||null,ts:new Date().toLocaleString('es-CL'),user:S.user,masivo:true});
-    imp++;
-  }
-  log('Carga masiva BSF: '+imp+' registros');
-  sv();cMdl('mBsfMas');rBsf();
-  alert('✅ '+imp+' bienes registrados como "sin encontrar".');
-}
+
+
+
 function rBsf(){
   if(!S.bsf)S.bsf=[];
   var PER=25;
