@@ -6,7 +6,7 @@
 <title>ESFOCAR Inventario 2026</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9;min-height:100vh}
+html,body{height:100%;margin:0;padding:0}body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9}
 #loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2420,#2d3a30)}
 .lBox{background:#2d3a30;border-radius:18px;padding:40px 36px;width:330px;box-shadow:0 10px 40px rgba(0,0,0,.6);text-align:center;border:1px solid #3d5040}
 .lLogo{font-size:2.2rem;font-weight:900;letter-spacing:3px;color:#c8e6cd}
@@ -20,8 +20,8 @@ body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9;min-heig
 .pOk{background:#3a6040;grid-column:span 3;font-size:.9rem;letter-spacing:2px;padding:14px}
 .pOk:hover{background:#4a7050}
 .lErr{color:#e07070;font-size:.82rem;margin-top:8px;min-height:18px}
-#app{display:none;height:100vh;overflow:hidden}
-#aWrap{display:flex;height:100%}
+#app{display:flex;height:100vh;overflow:hidden}
+#aWrap{display:flex;height:100%;flex:1;overflow:hidden}
 #sb{width:238px;min-width:238px;background:#1e2d25;display:flex;flex-direction:column;border-right:1px solid #2a3a2e}
 .sbTop{padding:20px 18px 14px}
 .sbLogo{font-size:1.55rem;font-weight:900;letter-spacing:2px;color:#c8e6cd}
@@ -44,7 +44,7 @@ body{font-family:'Segoe UI',sans-serif;background:#1a2420;color:#e8ede9;min-heig
 .tBadge{background:#253028;padding:5px 13px;border-radius:18px;font-size:.76rem;color:#8fb89a;border:1px solid #2a3a2e}
 .btnOut{background:transparent;border:1px solid #3d5040;color:#8fb89a;padding:5px 13px;border-radius:7px;cursor:pointer;font-size:.76rem;transition:.13s}
 .btnOut:hover{background:#3d5040}
-#cnt{flex:1;overflow-y:auto;padding:22px 26px}
+#cnt{flex:1;overflow-y:auto;padding:28px 32px;min-width:0}
 .sGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
 .sCd{background:#1e2d25;border-radius:13px;padding:20px 18px;border:1px solid #2a3a2e;transition:.18s}
 .sCd:hover{border-color:#4a6a50;transform:translateY(-2px)}
@@ -89,13 +89,13 @@ tr:hover td{background:#1e2820}
 .fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
 .fg3 .fg{margin-bottom:0}
 .mBtns{display:flex;gap:9px;justify-content:flex-end;margin-top:20px}
-.dGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:13px}
-.dCd{background:#1e2d25;border-radius:13px;padding:16px;border:1px solid #2a3a2e;cursor:pointer;transition:.18s}
-.dCd:hover{border-color:#6ab87a;background:#1e2820;transform:translateY(-2px)}
-.dId{font-size:.66rem;color:#6a8570;font-weight:600;margin-bottom:5px;letter-spacing:1px}
-.dNm{font-size:.88rem;font-weight:700;color:#c8e6cd;margin-bottom:10px;line-height:1.3}
-.dCnt{font-size:1.55rem;font-weight:800;color:#6ab87a;line-height:1}
-.dLbl{font-size:.66rem;color:#6a8570;margin-top:2px}
+.dGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.dCd{background:#1e2d25;border-radius:14px;padding:26px 22px;border:1px solid #2a3a2e;cursor:pointer;transition:.18s;display:flex;flex-direction:column;min-height:190px}
+.dCd:hover{background:#243320;border-color:#6ab87a;transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.dId{font-size:.68rem;color:#6a8570;font-weight:700;letter-spacing:1.2px;margin-bottom:8px}
+.dNm{font-size:1.05rem;font-weight:700;color:#c8e6cd;line-height:1.3;flex:1;margin-bottom:16px}
+.dCnt{font-size:2.4rem;font-weight:800;color:#6ab87a;line-height:1}
+.dLbl{font-size:.68rem;color:#8fb89a;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
 .fGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px}
 .fCd{background:#1e2d25;border-radius:14px;padding:18px;border:1px solid #2a3a2e;transition:.15s}
 .fCd:hover{border-color:#4a6a50}
@@ -450,8 +450,20 @@ function rDep(){
   var dc={};for(var i=0;i<S.dep.length;i++)dc[S.dep[i].id]=S.esp.filter(function(e){return e.did===S.dep[i].id;}).length;
   var h='<div class="sHdr"><h2>'+S.dep.length+' Dependencias</h2><button class="btn gn" onclick="oAddDep()">➕ Nueva</button></div><div class="dGrid">';
   for(var j=0;j<S.dep.length;j++){
-    var d=S.dep[j],c=dc[d.id]||0,ac=S.esp.filter(function(e){return e.did===d.id&&e.est==='A';}).length;
-    h+='<div class="dCd" onclick="vDep('+d.id+')"><div class="dId">ID: '+String(d.id).padStart(2,'0')+'</div><div class="dNm">'+esc(d.nombre)+'</div><div class="dCnt">'+c+'</div><div class="dLbl">bienes ('+ac+' activos)</div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn bl sm" onclick="event.stopPropagation();oEditDep('+d.id+')">✏️ Editar</button><button class="btn rd sm" onclick="event.stopPropagation();dDep('+d.id+')">🗑️</button></div></div>';
+    var d=S.dep[j],tot=dc[d.id]||0,ac=S.esp.filter(function(e){return e.did===d.id&&e.est==='A';}).length,ba=S.esp.filter(function(e){return e.did===d.id&&e.est==='B';}).length;
+    h+='<div class="dCd" onclick="vDep('+d.id+')">';
+    h+='<div class="dId">DEP '+String(d.id).padStart(3,'0')+'</div>';
+    h+='<div class="dNm">'+esc(d.nombre)+'</div>';
+    h+='<div style="display:flex;gap:18px;margin-bottom:16px">';
+    h+='<div><div class="dCnt">'+tot+'</div><div class="dLbl">Bienes</div></div>';
+    h+='<div><div class="dCnt" style="color:#4fc3f7">'+ac+'</div><div class="dLbl">Activos</div></div>';
+    h+='<div><div class="dCnt" style="color:#e07070">'+ba+'</div><div class="dLbl">Bajas</div></div>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:6px;margin-top:auto" onclick="event.stopPropagation()">';
+    h+='<button class="btn bl sm" onclick="oEditDep('+d.id+')">✏️ Editar</button>';
+    h+='<button class="btn sm" style="background:#2d6a4f;font-size:.72rem;padding:5px 10px" onclick="abrirGeneradorPlanilla('+d.id+')">🖨️ Planilla</button>';
+    h+='<button class="btn rd sm" onclick="dDep('+d.id+')">🗑️</button>';
+    h+='</div></div>';
   }
   document.getElementById('cnt').innerHTML=h+'</div>';
 }
@@ -914,32 +926,7 @@ function generarPlanilla(){
     html += '</tr></table>';
   }
 
-  html += '
-<!-- MODAL PLANILLA DEPENDENCIA -->
-<div class="ov" id="mPlanDep">
-  <div class="mdl">
-    <h3>🖨️ Planilla — <span id="pdDepNom"></span></h3>
-    <input id="pdDepId" type="hidden">
-    <p style="font-size:.78rem;color:#8fb89a;margin-bottom:14px" id="pdCount"></p>
-    <div class="fg"><label>Encargado de dependencia</label><input id="pdFNom" placeholder="APELLIDO APELLIDO Nombre"></div>
-    <div class="fg"><label>Grado encargado</label><input id="pdFGrd" placeholder="Sargento 1ro de Carabineros"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="fg" style="margin:0"><label>Jefe Comisión</label><input id="pdJNom" placeholder="APELLIDO APELLIDO Nombre"></div>
-      <div class="fg" style="margin:0"><label>Grado Jefe</label><input id="pdJGrd" placeholder="Teniente de Carabineros"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="fg" style="margin:0"><label>Comandante</label><input id="pdCNom" placeholder="APELLIDO APELLIDO Nombre"></div>
-      <div class="fg" style="margin:0"><label>Grado Comandante</label><input id="pdCGrd" placeholder="Mayor de Carabineros"></div>
-    </div>
-    <div class="fg"><label>Lugar y fecha</label><input id="pdFecha"></div>
-    <div class="mBtns">
-      <button class="btn rd" onclick="cMdl('mPlanDep')">Cancelar</button>
-      <button class="btn gn" onclick="genPlanDep()">📄 Descargar .doc</button>
-    </div>
-  </div>
-</div>
-
-</body></html>';
+  html += '</body></html>';
 
   // Descargar como .doc
   var blob = new Blob(['\ufeff', html], { type: 'application/msword' });
@@ -959,86 +946,9 @@ function generarPlanilla(){
 // GENERADOR DE PLANILLAS (MODAL)
 // ══════════════════════════════════════════
 
-function abrirGeneradorPlanilla(depId){
-  var dep=S.dep.find(function(d){return d.id===depId;});
-  if(!dep)return;
-  document.getElementById('pdDepNom').textContent=dep.nombre.toUpperCase();
-  document.getElementById('pdDepId').value=depId;
-  document.getElementById('pdFNom').value='';
-  document.getElementById('pdFGrd').value='';
-  document.getElementById('pdJNom').value=S.planJefNom||'';
-  document.getElementById('pdJGrd').value=S.planJefGrd||'';
-  document.getElementById('pdCNom').value=S.planCmdNom||'';
-  document.getElementById('pdCGrd').value=S.planCmdGrd||'';
-  var meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-  var hoy=new Date();
-  document.getElementById('pdFecha').value='CONCEPCION, '+hoy.getDate()+' DE '+meses[hoy.getMonth()]+' DEL '+hoy.getFullYear();
-  var items=S.esp.filter(function(e){return e.did===depId&&e.est!=='B';});
-  document.getElementById('pdCount').textContent=items.length+' bienes activos';
-  oMdl('mPlanDep');
-}
-function cerrarPlanModal(){cMdl('mPlanDep');}
-function generarPlanillaWord(dep){}
-function genPlanDep(){
-  var depId=parseInt(document.getElementById('pdDepId').value);
-  var dep=S.dep.find(function(d){return d.id===depId;});
-  var fNom=document.getElementById('pdFNom').value.trim().toUpperCase();
-  var fGrd=document.getElementById('pdFGrd').value.trim();
-  var jNom=document.getElementById('pdJNom').value.trim().toUpperCase();
-  var jGrd=document.getElementById('pdJGrd').value.trim();
-  var cNom=document.getElementById('pdCNom').value.trim().toUpperCase();
-  var cGrd=document.getElementById('pdCGrd').value.trim();
-  var fecha=document.getElementById('pdFecha').value.trim().toUpperCase();
-  if(!fNom){alert('Ingresa el nombre del encargado de la dependencia.');return;}
-  S.planJefNom=jNom;S.planJefGrd=jGrd;S.planCmdNom=cNom;S.planCmdGrd=cGrd;sv();
-  var items=S.esp.filter(function(e){return e.did===depId&&e.est!=='B';});
-  var filas='';
-  items.forEach(function(e,i){
-    var codSap=e.bcu&&e.bcu!==''&&e.bcu!=='Á'?e.bcu:'NO ASIGNADO';
-    var desc=e.nom+(e.serie&&e.serie!=='-'?' Serie: '+e.serie:'');
-    filas+='<tr>';
-    filas+='<td style="border:1px solid #000;text-align:center;padding:3px 5px;font-size:10pt">'+(i+1)+'</td>';
-    filas+='<td style="border:1px solid #000;text-align:center;padding:3px 5px;font-size:8.5pt;font-family:Arial Narrow,Arial">'+esc(codSap)+'</td>';
-    filas+='<td style="border:1px solid #000;text-align:center;padding:3px 5px;font-size:8.5pt;font-family:Arial Narrow,Arial">'+esc(e.cod||'')+'</td>';
-    filas+='<td style="border:1px solid #000;padding:3px 6px;font-size:10pt">'+esc(desc)+'</td>';
-    filas+='<td style="border:1px solid #000;text-align:center;padding:3px 5px;font-size:9pt"></td>';
-    filas+='</tr>';
-  });
-  var wHtml='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
-  wHtml+='<head><meta charset="utf-8"><style>';
-  wHtml+='@page{size:A4 portrait;margin:2cm 2.5cm 2cm 2.5cm;}';
-  wHtml+='body{font-family:Arial,sans-serif;font-size:11pt;color:#000;}';
-  wHtml+='table{border-collapse:collapse;width:100%;}';
-  wHtml+='th{border:1px solid #000;background:#f0f0f0;padding:4px 6px;text-align:center;font-size:9.5pt;font-weight:bold;}';
-  wHtml+='</style></head><body>';
-  wHtml+='<p style="text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;margin-bottom:4pt">PLANILLA DE INVENTARIO LIBRO Nº 1</p>';
-  wHtml+='<p style="font-size:11pt;margin:0 0 2pt 0"><strong>Dependencia: '+esc(dep?dep.nombre.toUpperCase():'')+'</strong></p>';
-  wHtml+='<p style="font-size:14pt;font-weight:bold;margin:6pt 0 8pt 0">LIBRO N°1</p>';
-  wHtml+='<table><tr>';
-  wHtml+='<th style="width:4%">N.º</th>';
-  wHtml+='<th style="width:14%">COD SAP</th>';
-  wHtml+='<th style="width:17%">CODIGO DE BIEN B.C.U.</th>';
-  wHtml+='<th style="width:55%">DESCRIPCION DE LAS ESPECIES</th>';
-  wHtml+='<th style="width:10%">OBSERVACIONES</th>';
-  wHtml+='</tr>'+filas+'</table>';
-  wHtml+='<p style="text-align:center;font-size:13pt;font-weight:bold;margin:28pt 0 20pt 0">'+esc(fecha)+'</p>';
-  wHtml+='<table style="width:100%;border:none;margin-bottom:30pt"><tr>';
-  wHtml+='<td style="text-align:center;width:50%;border:none;vertical-align:top;padding-top:50px"><p style="margin:0;border-top:1px solid #000;display:inline-block;min-width:200px"></p><br><strong>'+esc(fNom)+'</strong><br><span style="font-size:10pt">'+esc(fGrd)+'</span><br><strong>ENCARGADO DE DEPENDENCIA</strong></td>';
-  if(jNom)wHtml+='<td style="text-align:center;width:50%;border:none;vertical-align:top;padding-top:50px"><p style="margin:0;border-top:1px solid #000;display:inline-block;min-width:200px"></p><br><strong>'+esc(jNom)+'</strong><br><span style="font-size:10pt">'+esc(jGrd)+'</span><br><strong>JEFE COMISION INVENTARIO</strong></td>';
-  wHtml+='</tr></table>';
-  if(cNom)wHtml+='<table style="width:100%;border:none"><tr><td style="text-align:center;border:none;padding-top:50px"><p style="margin:0;border-top:1px solid #000;display:inline-block;min-width:200px"></p><br><strong>'+esc(cNom)+'</strong><br><span style="font-size:10pt">'+esc(cGrd)+'</span><br><strong>COMANDANTE DE GRUPO</strong></td></tr></table>';
-  wHtml+='</body></html>';
-  var blob=new Blob([wHtml],{type:'application/msword'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  var slug=(dep?dep.nombre:'dep').replace(/[^a-zA-Z0-9]/g,'_').substring(0,30);
-  a.download='Planilla_'+slug+'.doc';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setTimeout(function(){URL.revokeObjectURL(url);},2000);
-  cMdl('mPlanDep');
-  logM('Planilla generada: '+(dep?dep.nombre:''));sv();
-}
+function abrirGeneradorPlanilla(dep){alert('Módulo de planilla desactivado temporalmente.');}
+function cerrarPlanModal(){}
+function generarPlanillaWord(dep){alert('Módulo de planilla desactivado temporalmente.');}
 function rHual(){
   var locs=S.hloc||[];
   var hesp=S.hesp||[];
@@ -2946,9 +2856,9 @@ document.getElementById('resModal').addEventListener('click',function(e){
 <script>
 window.addEventListener('DOMContentLoaded',function(){
   try{
-    if(!localStorage.getItem('e_dep')) localStorage.setItem('e_dep', JSON.stringify(SDEP));
-    if(!localStorage.getItem('e_esp')) localStorage.setItem('e_esp', JSON.stringify(SESP));
-    if(!localStorage.getItem('e_fun')) localStorage.setItem('e_fun', JSON.stringify(SFUN));
+    localStorage.setItem('e_dep', JSON.stringify(SDEP));
+    localStorage.setItem('e_esp', JSON.stringify(SESP));
+    localStorage.setItem('e_fun', JSON.stringify(SFUN));
     if(!localStorage.getItem('e_pre')) localStorage.setItem('e_pre','[]');
     if(!localStorage.getItem('e_baj')) localStorage.setItem('e_baj','[]');
     if(!localStorage.getItem('e_log')) localStorage.setItem('e_log','[]');
@@ -2956,6 +2866,22 @@ window.addEventListener('DOMContentLoaded',function(){
     if(!localStorage.getItem('e_hesp')) localStorage.setItem('e_hesp','[]');
     if(!localStorage.getItem('e_pbaj')) localStorage.setItem('e_pbaj','[]');
     if(!localStorage.getItem('e_bsf')) localStorage.setItem('e_bsf','[]');
+    if(typeof ld==='function') ld();
+    if(typeof S!=='undefined'){S.user='0507';S.isAdmin=true;}
+    var lw=document.getElementById('loginWrap');
+    var ap=document.getElementById('app');
+    if(lw) lw.style.display='none';
+    if(ap) ap.style.display='block';
+    var f=(S&&S.fun)?S.fun.find(function(x){return x.pin==='0507';}):null;
+    var nm=f?f.nom:'Administrador';
+    var rol=f?f.grado:'Administrador';
+    if(document.getElementById('uAv')) document.getElementById('uAv').textContent=typeof ini==='function'?ini(nm):'AD';
+    if(document.getElementById('uNm')) document.getElementById('uNm').textContent=nm.split(' ').slice(0,2).join(' ');
+    if(document.getElementById('uRol')) document.getElementById('uRol').textContent='👑 '+rol;
+    if(document.getElementById('tBadge')) document.getElementById('tBadge').textContent=rol+' — 0507';
+    if(document.getElementById('sfPin')) document.getElementById('sfPin').textContent='0507';
+    if(typeof buildNav==='function') buildNav();
+    if(typeof nav==='function') nav('dash');
   }catch(e){console.error(e);}
 });
 </script>
