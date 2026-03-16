@@ -144,10 +144,10 @@ tr:hover td{background:#1e2820}
 .infoBanner{background:#1a3028;border:1px solid #2a5038;border-radius:9px;padding:12px 16px;font-size:.8rem;color:#8fb89a;margin-bottom:16px;line-height:1.6}
 .infoBanner strong{color:#c8e6cd}
 </style>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" async></script>
 </head>
 <body>
-<div id="loginWrap">
+<div id="loginWrap" style="display:none">
   <div class="lBox">
     <div class="lLogo">ESFOCAR</div>
     <div class="lSub">Inventario V5 &mdash; 2026</div>
@@ -163,7 +163,7 @@ tr:hover td{background:#1e2820}
     <div class="lErr" id="lErr"></div>
   </div>
 </div>
-<div id="app">
+<div id="app" style="display:flex">
  <div id="aWrap">
   <nav id="sb">
    <div class="sbTop">
@@ -450,27 +450,15 @@ function rDep(){
   var dc={};for(var i=0;i<S.dep.length;i++)dc[S.dep[i].id]=S.esp.filter(function(e){return e.did===S.dep[i].id;}).length;
   var h='<div class="sHdr"><h2>'+S.dep.length+' Dependencias</h2><button class="btn gn" onclick="oAddDep()">➕ Nueva</button></div><div class="dGrid">';
   for(var j=0;j<S.dep.length;j++){
-    var d=S.dep[j],tot=dc[d.id]||0,ac=S.esp.filter(function(e){return e.did===d.id&&e.est==='A';}).length,ba=S.esp.filter(function(e){return e.did===d.id&&e.est==='B';}).length;
-    h+='<div class="dCd" onclick="vDep('+d.id+')">';
-    h+='<div class="dId">DEP '+String(d.id).padStart(3,'0')+'</div>';
-    h+='<div class="dNm">'+esc(d.nombre)+'</div>';
-    h+='<div style="display:flex;gap:18px;margin-bottom:16px">';
-    h+='<div><div class="dCnt">'+tot+'</div><div class="dLbl">Bienes</div></div>';
-    h+='<div><div class="dCnt" style="color:#4fc3f7">'+ac+'</div><div class="dLbl">Activos</div></div>';
-    h+='<div><div class="dCnt" style="color:#e07070">'+ba+'</div><div class="dLbl">Bajas</div></div>';
-    h+='</div>';
-    h+='<div style="display:flex;gap:6px;margin-top:auto" onclick="event.stopPropagation()">';
-    h+='<button class="btn bl sm" onclick="oEditDep('+d.id+')">✏️ Editar</button>';
-    h+='<button class="btn sm" style="background:#2d6a4f;font-size:.72rem;padding:5px 10px" onclick="abrirGeneradorPlanilla('+d.id+')">🖨️ Planilla</button>';
-    h+='<button class="btn rd sm" onclick="dDep('+d.id+')">🗑️</button>';
-    h+='</div></div>';
+    var d=S.dep[j],c=dc[d.id]||0,ac=S.esp.filter(function(e){return e.did===d.id&&e.est==='A';}).length;
+    h+='<div class="dCd" onclick="vDep('+d.id+')"><div class="dId">ID: '+String(d.id).padStart(2,'0')+'</div><div class="dNm">'+esc(d.nombre)+'</div><div class="dCnt">'+c+'</div><div class="dLbl">bienes ('+ac+' activos)</div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn bl sm" onclick="event.stopPropagation();oEditDep('+d.id+')">✏️ Editar</button><button class="btn sm" style="background:#1a4a6a;font-size:.72rem;padding:5px 9px" onclick="event.stopPropagation();abrirGeneradorPlanilla('+d.id+')">🖨️</button><button class="btn rd sm" onclick="event.stopPropagation();dDep('+d.id+')">🗑️</button></div></div>';
   }
   document.getElementById('cnt').innerHTML=h+'</div>';
 }
 var SdepId=null;
-function oAddDep(){S.depId=null;document.getElementById('mDepT').textContent='Nueva Dependencia';document.getElementById('dNom').value='';oMdl('mDep');}
-function oEditDep(id){var d=S.dep.find(function(x){return x.id===id;});S.depId=id;document.getElementById('mDepT').textContent='Editar Dependencia';document.getElementById('dNom').value=d.nombre;oMdl('mDep');}
-function saveDep(){var nom=document.getElementById('dNom').value.trim();if(!nom)return alert('Nombre requerido.');if(S.depId!=null){S.dep.find(function(x){return x.id===S.depId;}).nombre=nom;}else{S.dep.push({id:nid(S.dep),nombre:nom});}sv();cMdl('mDep');rDep();}
+function oAddDep(){S.depId=null;document.getElementById('mDepT').textContent='Nueva Dependencia';document.getElementById('dNom').value='';document.getElementById('dEncNom').value='';document.getElementById('dEncGrado').value='';oMdl('mDep');}
+function oEditDep(id){var d=S.dep.find(function(x){return x.id===id;});S.depId=id;document.getElementById('mDepT').textContent='Editar Dependencia';document.getElementById('dNom').value=d.nombre;document.getElementById('dEncNom').value=d.encNom||'';document.getElementById('dEncGrado').value=d.encGrado||'';oMdl('mDep');}
+function saveDep(){var nom=document.getElementById('dNom').value.trim();if(!nom)return alert('Nombre requerido.');var encNom=document.getElementById('dEncNom').value.trim();var encGrado=document.getElementById('dEncGrado').value.trim();if(S.depId!=null){var d=S.dep.find(function(x){return x.id===S.depId;});d.nombre=nom;d.encNom=encNom;d.encGrado=encGrado;}else{S.dep.push({id:nid(S.dep),nombre:nom,encNom:encNom,encGrado:encGrado});}sv();cMdl('mDep');rDep();}
 function dDep(id){if(!confirm('¿Borrar dependencia? Las especies quedarán sin dependencia asignada.'))return;S.dep=S.dep.filter(function(x){return x.id!==id;});for(var i=0;i<S.esp.length;i++)if(S.esp[i].did===id)S.esp[i].did=null;sv();rDep();}
 function vDep(id){var dep=S.dep.find(function(d){return d.id===id;});if(!dep)return;var items=S.esp.filter(function(e){return e.did===id;});var h='<button class="btn bl sm" onclick="rDep()" style="margin-bottom:14px">&#8592; Volver</button><h2 style="color:#c8e6cd;margin-bottom:16px">['+String(dep.id).padStart(2,'0')+'] '+esc(dep.nombre)+'</h2>';h+='<div class="tWrap"><table><tr><th>C\u00F3digo</th><th>Nombre</th><th>Estado</th><th>Custodio</th></tr>';for(var i=0;i<items.length;i++){var e=items[i];var cf=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;h+='<tr><td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(e.cod)+'</td><td style="font-size:.79rem">'+esc(e.nom)+'</td><td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td><td style="font-size:.75rem;color:'+(cf?'#6ab87a':'#6a8570')+'">'+esc(cf?cf.nom:'Sin asignar')+'</td></tr>';}document.getElementById('cnt').innerHTML=h+'</table></div>';}
 
@@ -946,7 +934,75 @@ function generarPlanilla(){
 // GENERADOR DE PLANILLAS (MODAL)
 // ══════════════════════════════════════════
 
-function abrirGeneradorPlanilla(dep){alert('Módulo de planilla desactivado temporalmente.');}
+function abrirGeneradorPlanilla(depId){
+  var dep=S.dep.find(function(d){return d.id===depId;});if(!dep)return;
+  var bienes=S.esp.filter(function(e){return e.did===depId;});
+  var now=new Date();
+  var meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  var fecha='CONCEPCIÓN, '+now.getDate()+' DE '+meses[now.getMonth()]+' DEL '+now.getFullYear();
+  var encNom=(dep.encNom||'').toUpperCase()||'______________________________';
+  var encGrado=dep.encGrado||'Carabineros de Chile';
+  var rows='';
+  bienes.forEach(function(e,i){
+    var bg=(i%2===0)?'#ffffff':'#f5f5f5';
+    rows+='<tr style="background:'+bg+'">';
+    rows+='<td style="border:1px solid #000;padding:5px 7px;text-align:center;width:35px">'+(i+1)+'</td>';
+    rows+='<td style="border:1px solid #000;padding:5px 7px;text-align:center;width:130px">'+esc(e.nom)+'</td>';
+    rows+='<td style="border:1px solid #000;padding:5px 7px;text-align:center;width:95px">'+esc(e.cod||'')+'</td>';
+    rows+='<td style="border:1px solid #000;padding:5px 7px">'+esc(e.obs||e.nom)+'</td>';
+    rows+='<td style="border:1px solid #000;padding:5px 7px;text-align:center;width:60px">1</td>';
+    rows+='</tr>';
+  });
+  var html='<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8">';
+  html+='<style>';
+  html+='@page{margin:2cm 2.5cm}';
+  html+='body{font-family:Arial,sans-serif;font-size:10pt;color:#000;margin:2cm 2.5cm}';
+  html+='table{border-collapse:collapse}';
+  html+='</style>';
+  html+='<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->';
+  html+='</head><body>';
+  // Título
+  html+='<p style="text-align:center;font-weight:bold;text-decoration:underline;font-size:12pt;margin-bottom:20px;margin-top:10px">PLANILLA DE INVENTARIO</p>';
+  // Nombre dependencia
+  html+='<p style="font-weight:bold;text-decoration:underline;font-size:10pt;margin-bottom:10px">'+esc(dep.nombre)+'</p>';
+  // Tabla bienes
+  html+='<table style="width:100%;border-collapse:collapse;margin-bottom:20px">';
+  html+='<tr style="background:#ffffff"><th style="border:1px solid #000;padding:6px 7px;text-align:center;font-size:9pt;width:35px">N.º</th>';
+  html+='<th style="border:1px solid #000;padding:6px 7px;text-align:center;font-size:9pt;width:130px">OBJETO</th>';
+  html+='<th style="border:1px solid #000;padding:6px 7px;text-align:center;font-size:9pt;width:95px">CÓDIGO</th>';
+  html+='<th style="border:1px solid #000;padding:6px 7px;text-align:center;font-size:9pt">DESCRIPCIÓN DE LAS ESPECIES</th>';
+  html+='<th style="border:1px solid #000;padding:6px 7px;text-align:center;font-size:9pt;width:60px">CANTIDAD</th></tr>';
+  html+=rows||'<tr><td colspan="5" style="border:1px solid #000;padding:6px;text-align:center">Sin bienes registrados</td></tr>';
+  html+='</table>';
+  // Fecha
+  html+='<p style="text-align:center;font-weight:bold;font-size:10pt;margin:18px 0 35px">'+fecha+'</p>';
+  // Firmas — usar tabla para layout lado a lado (Word no soporta flexbox)
+  html+='<table style="width:100%;border-collapse:collapse"><tr>';
+  html+='<td style="width:50%;text-align:center;vertical-align:bottom;padding:0 20px">';
+  html+='<p style="margin:0;border-top:1px solid #000;padding-top:6px;font-weight:bold;font-size:10pt">'+esc(encNom)+'</p>';
+  html+='<p style="margin:2px 0;font-size:9pt">'+esc(encGrado)+'</p>';
+  html+='<p style="margin:0;font-weight:bold;font-size:10pt">ENCARGADO DE DEPENDENCIA</p>';
+  html+='</td>';
+  html+='<td style="width:50%;text-align:center;vertical-align:bottom;padding:0 20px">';
+  html+='<p style="margin:0;border-top:1px solid #000;padding-top:6px;font-weight:bold;font-size:10pt">MIGUEL RUBIO ALARCÓN</p>';
+  html+='<p style="margin:2px 0;font-size:9pt">Teniente de Carabineros</p>';
+  html+='<p style="margin:0;font-weight:bold;font-size:10pt">JEFE COMISIÓN INVENTARIO</p>';
+  html+='</td></tr></table>';
+  // Comandante — centrado abajo
+  html+='<table style="width:100%;border-collapse:collapse;margin-top:35px"><tr>';
+  html+='<td style="text-align:center;padding:0 20px">';
+  html+='<p style="margin:0;border-top:1px solid #000;padding-top:6px;font-weight:bold;font-size:10pt;display:inline-block;padding-left:60px;padding-right:60px">FRANCISCO ALMUNA BRAVO</p>';
+  html+='<p style="margin:2px 0;font-size:9pt">Mayor de Carabineros</p>';
+  html+='<p style="margin:0;font-weight:bold;font-size:10pt">COMANDANTE DE GRUPO (S)</p>';
+  html+='</td></tr></table>';
+  html+='</body></html>';
+  var blob=new Blob(['﻿'+html],{type:'application/msword;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='Planilla_'+dep.nombre.replace(/[^a-zA-Z0-9]/g,'_')+'_'+now.toISOString().slice(0,10)+'.doc';
+  a.click();URL.revokeObjectURL(url);
+}
 function cerrarPlanModal(){}
 function generarPlanillaWord(dep){alert('Módulo de planilla desactivado temporalmente.');}
 function rHual(){
@@ -2843,8 +2899,18 @@ document.getElementById('resModal').addEventListener('click',function(e){
   <div class="mdl">
     <h3 id="mDepT">Dependencia</h3>
     <div class="fg">
-      <label>Nombre</label>
+      <label>Nombre de la Dependencia</label>
       <input id="dNom" type="text" placeholder="Nombre de la dependencia...">
+    </div>
+    <div class="fg2">
+      <div class="fg">
+        <label>Encargado de Dependencia</label>
+        <input id="dEncNom" type="text" placeholder="Nombre completo...">
+      </div>
+      <div class="fg">
+        <label>Grado</label>
+        <input id="dEncGrado" type="text" placeholder="Ej: Sargento 1ro de Carabineros">
+      </div>
     </div>
     <div class="mBtns">
       <button class="btn rd" onclick="cMdl('mDep')">Cancelar</button>
@@ -2871,7 +2937,7 @@ window.addEventListener('DOMContentLoaded',function(){
     var lw=document.getElementById('loginWrap');
     var ap=document.getElementById('app');
     if(lw) lw.style.display='none';
-    if(ap) ap.style.display='block';
+    if(ap) ap.style.display='flex';
     var f=(S&&S.fun)?S.fun.find(function(x){return x.pin==='0507';}):null;
     var nm=f?f.nom:'Administrador';
     var rol=f?f.grado:'Administrador';
