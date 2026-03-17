@@ -334,9 +334,9 @@ function sv(){
   }catch(ex){
     var sz=0;try{for(var _k in localStorage)sz+=localStorage[_k].length;}catch(e2){}
     if(sz>4500000){
-      alert('⚠️ ALMACENAMIENTO CASI LLENO ('+Math.round(sz/1024)+' KB)\nUsa el botón 💾 BACKUP para exportar tus datos y liberar espacio.');
+      alert('⚠️ ALMACENAMIENTO CASI LLENO ('+Math.round(sz/1024)+' KB)\nUsa el botón 💾 BACKUP para exportar tus datos.');
     }else{
-      alert('⚠️ Error al guardar datos: '+ex.message);
+      alert('⚠️ Error al guardar: '+ex.message);
     }
     console.error('sv() error:',ex);
   }
@@ -359,7 +359,7 @@ function ld(){
   S.hist = lk('e_hist', []);
   S.mov  = lk('e_mov',  []);
   for(var i=0;i<S.esp.length;i++) if(S.esp[i].cid===undefined) S.esp[i].cid=null;
-  console.log('ESFOCAR V5 cargado — esp:'+S.esp.length+' dep:'+S.dep.length+' hist:'+S.hist.length+' pbaj:'+S.pbaj.length);
+  console.log('ESFOCAR V5 — esp:'+S.esp.length+' dep:'+S.dep.length+' hist:'+S.hist.length+' pbaj:'+S.pbaj.length);
 }
 function log(m){S.log.unshift({ts:new Date().toLocaleString('es-CL'),u:S.user,m:m});if(S.log.length>200)S.log.pop();}
 function td(){return new Date().toLocaleDateString('es-CL');}
@@ -1609,7 +1609,7 @@ function oAddHEsp(){
 function saveHEsp(){var eid=parseInt(document.getElementById('heEid').value);if(!eid){alert('Seleccione una especie.');return;}if(!S.hesp)S.hesp=[];var ubid=parseInt(document.getElementById('heUb').value)||null;var fid=parseInt(document.getElementById('heFid').value)||null;var fn=document.getElementById('heFq').value.trim();S.hesp.push({id:nid(S.hesp),eid:eid,ubid:ubid,fid:fid,fn:fn,obs:document.getElementById('heObs').value});var e=S.esp.find(function(x){return x.id===eid;});log('Hualpén: asignó '+(e?e.cod:''));sv2();cMdl('mHEsp');rHual();}
 function delHEsp(id){if(!confirm('\u00BFQuitar bien del escuadrón?'))return;S.hesp=(S.hesp||[]).filter(function(x){return x.id!==id;});sv2();rHual();}
 
-function sv2(){sv();}  // sv2 fusionado en sv()
+function sv2(){sv();}// sv2 fusionado en sv()
 
 
 function rHist(){
@@ -3422,7 +3422,9 @@ window.addEventListener('DOMContentLoaded',function(){
   }catch(e){console.error(e);}
 });
 
-/* ─── BACKUP / RESTAURAR ─── */
+/* ═══════════════════════════════════════════
+   BACKUP / RESTAURAR DATOS
+═══════════════════════════════════════════ */
 function backupData(){
   var data={
     dep:S.dep, esp:S.esp, pre:S.pre, baj:S.baj, fun:S.fun,
@@ -3444,8 +3446,9 @@ function backupData(){
   setTimeout(function(){URL.revokeObjectURL(url);},2000);
   log('Backup exportado: '+fecha);
   var _si=document.getElementById('svInd');
-  if(_si){_si.textContent='📦 Backup listo';_si.style.color='#6ab87a';
-    setTimeout(function(){_si.textContent='';},3000);}
+  if(_si){_si.textContent='📦 Backup listo';_si.style.color='#d4aa30';
+    clearTimeout(backupData._t);
+    backupData._t=setTimeout(function(){_si.textContent='';},3500);}
 }
 
 function restoreData(){
@@ -3458,10 +3461,12 @@ function restoreData(){
       try{
         var data=JSON.parse(e.target.result);
         if(!data._v||data._v.indexOf('ESFOCAR')<0){
-          if(!confirm('Este archivo no parece ser un backup de ESFOCAR.\n¿Importar de todas formas?'))return;
+          if(!confirm('Este archivo no parece un backup de ESFOCAR.\n¿Importar de todas formas?'))return;
         }
-        var fechaMsg=data._fecha?new Date(data._fecha).toLocaleString('es-CL'):'desconocida';
-        if(!confirm('⚠️ RESTAURAR BACKUP\n\nEsto reemplazará TODOS los datos actuales.\nFecha del backup: '+fechaMsg+'\n\n¿Continuar?'))return;
+        var fechaMsg=data._fecha
+          ?new Date(data._fecha).toLocaleString('es-CL')
+          :'desconocida';
+        if(!confirm('⚠️  RESTAURAR BACKUP\n\nEsto reemplazará TODOS los datos actuales.\nFecha del backup: '+fechaMsg+'\n\n¿Continuar?'))return;
         if(data.dep)  S.dep=data.dep;
         if(data.esp)  S.esp=data.esp;
         if(data.pre)  S.pre=data.pre;
@@ -3476,7 +3481,7 @@ function restoreData(){
         if(data.mov)  S.mov=data.mov;
         if(data.cfg)  saveCfg(data.cfg);
         sv();
-        alert('✅ Backup restaurado correctamente.\nFecha: '+fechaMsg);
+        alert('✅ Backup restaurado.\nFecha: '+fechaMsg);
         nav('dash');
       }catch(ex){
         alert('❌ Error al leer el backup:\n'+ex.message);
