@@ -175,7 +175,7 @@ tr:hover td{background:#1e2820}
    <div class="sbFoot">ESFOCAR Concepci&oacute;n &mdash; 2026<br>PIN: <b id="sfPin" style="color:#6ab87a"></b></div>
   </nav>
   <div id="main">
-   <div class="tBar"><h1 id="tTitle">Dashboard</h1><div class="tRight"><span class="tBadge" id="tBadge">&#128100; ----</span><button class="btnOut" onclick="logout()">Salir</button></div></div>
+   <div class="tBar"><h1 id="tTitle">Dashboard</h1><div class="tRight"><span class="tBadge" id="tBadge">&#128100; ----</span><span id="svInd" style="font-size:.72rem;color:#6ab87a;margin:0 10px;min-width:90px;display:inline-block;vertical-align:middle;font-weight:600"></span><button class="btn tl sm" onclick="backupData()" title="Exportar backup de todos los datos" style="font-size:.7rem;padding:3px 10px;margin-right:4px">💾 Backup</button><button class="btn bl sm" onclick="restoreData()" title="Restaurar desde backup .json" style="font-size:.7rem;padding:3px 10px;margin-right:8px">📂 Restaurar</button><button class="btnOut" onclick="logout()">Salir</button></div></div>
    <div id="cnt"></div>
   </div>
  </div>
@@ -314,8 +314,53 @@ var SFUN=[{"id":1,"nom":"ESPINOZA SAGUER RODRIGO ANDRES","grado":"MAYOR","rut":"
 
 var S={user:null,isAdmin:false,admTab:'seg',fuTab:'all',dep:[],esp:[],pre:[],baj:[],fun:[],log:[],hloc:[],hesp:[],view:'dash',pg:1,esQ:'',esD:'',fuQ:'',mvT:'pre',htab:'ub',histQ:'',histPg:1,histUb:'',eid:null,fid:null,asigFid:null,bajQ:'',bajN:'',esp2Q:'',esp2D:'',tecQ:'',tecD:'',tecCampo:'',pbajQ:'',pbajD:'',bsfQ:'',bsfD:'',pbaj:[],bsf:[]};
 
-function sv(){try{localStorage.setItem('e_dep',JSON.stringify(S.dep));localStorage.setItem('e_esp',JSON.stringify(S.esp));localStorage.setItem('e_pre',JSON.stringify(S.pre));localStorage.setItem('e_baj',JSON.stringify(S.baj));localStorage.setItem('e_fun',JSON.stringify(S.fun));localStorage.setItem('e_log',JSON.stringify(S.log));}catch(e){}}
-function ld(){S.dep=JSON.parse(localStorage.getItem('e_dep'))||SDEP;S.esp=JSON.parse(localStorage.getItem('e_esp'))||SESP;S.pre=JSON.parse(localStorage.getItem('e_pre'))||[];S.baj=JSON.parse(localStorage.getItem('e_baj'))||[];S.fun=JSON.parse(localStorage.getItem('e_fun'))||SFUN;S.log=JSON.parse(localStorage.getItem('e_log'))||[];for(var i=0;i<S.esp.length;i++)if(S.esp[i].cid===undefined)S.esp[i].cid=null;S.hloc=JSON.parse(localStorage.getItem('e_hloc'))||[];S.hesp=JSON.parse(localStorage.getItem('e_hesp'))||[];S.pbaj=JSON.parse(localStorage.getItem('e_pbaj'))||[];S.bsf=JSON.parse(localStorage.getItem('e_bsf'))||[];}
+function sv(){
+  try{
+    localStorage.setItem('e_dep', JSON.stringify(S.dep||[]));
+    localStorage.setItem('e_esp', JSON.stringify(S.esp||[]));
+    localStorage.setItem('e_pre', JSON.stringify(S.pre||[]));
+    localStorage.setItem('e_baj', JSON.stringify(S.baj||[]));
+    localStorage.setItem('e_fun', JSON.stringify(S.fun||[]));
+    localStorage.setItem('e_log', JSON.stringify((S.log||[]).slice(-200)));
+    localStorage.setItem('e_pbaj',JSON.stringify(S.pbaj||[]));
+    localStorage.setItem('e_bsf', JSON.stringify(S.bsf||[]));
+    localStorage.setItem('e_hist',JSON.stringify(S.hist||[]));
+    localStorage.setItem('e_mov', JSON.stringify(S.mov||[]));
+    localStorage.setItem('e_hloc',JSON.stringify(S.hloc||[]));
+    localStorage.setItem('e_hesp',JSON.stringify(S.hesp||[]));
+    var _si=document.getElementById('svInd');
+    if(_si){_si.textContent='💾 Guardado';_si.style.color='#6ab87a';
+      clearTimeout(sv._t);sv._t=setTimeout(function(){_si.textContent='';},2500);}
+  }catch(ex){
+    var sz=0;try{for(var _k in localStorage)sz+=localStorage[_k].length;}catch(e2){}
+    if(sz>4500000){
+      alert('⚠️ ALMACENAMIENTO CASI LLENO ('+Math.round(sz/1024)+' KB)\nUsa el botón 💾 BACKUP para exportar tus datos y liberar espacio.');
+    }else{
+      alert('⚠️ Error al guardar datos: '+ex.message);
+    }
+    console.error('sv() error:',ex);
+  }
+}
+function ld(){
+  function lk(k,def){
+    try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}
+    catch(e){console.warn('Error cargando '+k,e);return def;}
+  }
+  S.dep  = lk('e_dep',  SDEP);
+  S.esp  = lk('e_esp',  SESP);
+  S.pre  = lk('e_pre',  []);
+  S.baj  = lk('e_baj',  []);
+  S.fun  = lk('e_fun',  SFUN);
+  S.log  = lk('e_log',  []);
+  S.hloc = lk('e_hloc', []);
+  S.hesp = lk('e_hesp', []);
+  S.pbaj = lk('e_pbaj', []);
+  S.bsf  = lk('e_bsf',  []);
+  S.hist = lk('e_hist', []);
+  S.mov  = lk('e_mov',  []);
+  for(var i=0;i<S.esp.length;i++) if(S.esp[i].cid===undefined) S.esp[i].cid=null;
+  console.log('ESFOCAR V5 cargado — esp:'+S.esp.length+' dep:'+S.dep.length+' hist:'+S.hist.length+' pbaj:'+S.pbaj.length);
+}
 function log(m){S.log.unshift({ts:new Date().toLocaleString('es-CL'),u:S.user,m:m});if(S.log.length>200)S.log.pop();}
 function td(){return new Date().toLocaleDateString('es-CL');}
 function nid(a){return a.length?Math.max.apply(null,a.map(function(x){return x.id;}))+1:1;}
@@ -1564,7 +1609,7 @@ function oAddHEsp(){
 function saveHEsp(){var eid=parseInt(document.getElementById('heEid').value);if(!eid){alert('Seleccione una especie.');return;}if(!S.hesp)S.hesp=[];var ubid=parseInt(document.getElementById('heUb').value)||null;var fid=parseInt(document.getElementById('heFid').value)||null;var fn=document.getElementById('heFq').value.trim();S.hesp.push({id:nid(S.hesp),eid:eid,ubid:ubid,fid:fid,fn:fn,obs:document.getElementById('heObs').value});var e=S.esp.find(function(x){return x.id===eid;});log('Hualpén: asignó '+(e?e.cod:''));sv2();cMdl('mHEsp');rHual();}
 function delHEsp(id){if(!confirm('\u00BFQuitar bien del escuadrón?'))return;S.hesp=(S.hesp||[]).filter(function(x){return x.id!==id;});sv2();rHual();}
 
-function sv2(){sv();try{localStorage.setItem('e_hloc',JSON.stringify(S.hloc||[]));localStorage.setItem('e_hesp',JSON.stringify(S.hesp||[]));}catch(e){}}
+function sv2(){sv();}  // sv2 fusionado en sv()
 
 
 function rHist(){
@@ -3372,8 +3417,77 @@ window.addEventListener('DOMContentLoaded',function(){
     if(document.getElementById('sfPin')) document.getElementById('sfPin').textContent='0507';
     if(typeof buildNav==='function') buildNav();
     if(typeof nav==='function') nav('dash');
+    // Auto-guardado cada 30 segundos
+    setInterval(function(){if(typeof sv==='function')sv();},30000);
   }catch(e){console.error(e);}
 });
+
+/* ─── BACKUP / RESTAURAR ─── */
+function backupData(){
+  var data={
+    dep:S.dep, esp:S.esp, pre:S.pre, baj:S.baj, fun:S.fun,
+    log:(S.log||[]).slice(-100),
+    hloc:S.hloc, hesp:S.hesp,
+    pbaj:S.pbaj, bsf:S.bsf,
+    hist:S.hist, mov:S.mov,
+    cfg:getCfg(),
+    _v:'ESFOCAR_V5',
+    _fecha:new Date().toISOString()
+  };
+  var json=JSON.stringify(data,null,2);
+  var blob=new Blob([json],{type:'application/json;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  var fecha=new Date().toISOString().split('T')[0];
+  a.href=url; a.download='ESFOCAR_backup_'+fecha+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},2000);
+  log('Backup exportado: '+fecha);
+  var _si=document.getElementById('svInd');
+  if(_si){_si.textContent='📦 Backup listo';_si.style.color='#6ab87a';
+    setTimeout(function(){_si.textContent='';},3000);}
+}
+
+function restoreData(){
+  var input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=function(ev){
+    var file=ev.target.files[0]; if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var data=JSON.parse(e.target.result);
+        if(!data._v||data._v.indexOf('ESFOCAR')<0){
+          if(!confirm('Este archivo no parece ser un backup de ESFOCAR.\n¿Importar de todas formas?'))return;
+        }
+        var fechaMsg=data._fecha?new Date(data._fecha).toLocaleString('es-CL'):'desconocida';
+        if(!confirm('⚠️ RESTAURAR BACKUP\n\nEsto reemplazará TODOS los datos actuales.\nFecha del backup: '+fechaMsg+'\n\n¿Continuar?'))return;
+        if(data.dep)  S.dep=data.dep;
+        if(data.esp)  S.esp=data.esp;
+        if(data.pre)  S.pre=data.pre;
+        if(data.baj)  S.baj=data.baj;
+        if(data.fun)  S.fun=data.fun;
+        if(data.log)  S.log=data.log;
+        if(data.hloc) S.hloc=data.hloc;
+        if(data.hesp) S.hesp=data.hesp;
+        if(data.pbaj) S.pbaj=data.pbaj;
+        if(data.bsf)  S.bsf=data.bsf;
+        if(data.hist) S.hist=data.hist;
+        if(data.mov)  S.mov=data.mov;
+        if(data.cfg)  saveCfg(data.cfg);
+        sv();
+        alert('✅ Backup restaurado correctamente.\nFecha: '+fechaMsg);
+        nav('dash');
+      }catch(ex){
+        alert('❌ Error al leer el backup:\n'+ex.message);
+        console.error(ex);
+      }
+    };
+    reader.readAsText(file,'utf-8');
+  };
+  document.body.appendChild(input); input.click(); document.body.removeChild(input);
+}
+
 </script>
 </body>
 </html>
