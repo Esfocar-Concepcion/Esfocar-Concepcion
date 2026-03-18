@@ -3617,15 +3617,25 @@ window.addEventListener('DOMContentLoaded',function(){
   try{
     if(!localStorage.getItem('e_dep')) localStorage.setItem('e_dep', JSON.stringify(SDEP));
     // Verificar si los códigos internos son del formato antiguo (ESF-) y forzar recarga
+  // Sincronizar e_esp: si SESP tiene más registros o hay códigos viejos ESF-, forzar recarga
   var _espGuardado=localStorage.getItem('e_esp');
+  var _maxIdSESP=SESP.reduce(function(m,e){return e.id>m?e.id:m;},0);
   if(!_espGuardado){
     localStorage.setItem('e_esp', JSON.stringify(SESP));
   } else {
     try{
       var _espArr=JSON.parse(_espGuardado);
+      var _maxIdGuardado=_espArr.reduce(function(m,e){return e.id>m?e.id:m;},0);
       var _tieneViejo=_espArr.some(function(e){return (e.cod||'').indexOf('ESF-')===0;});
-      if(_tieneViejo){ localStorage.setItem('e_esp', JSON.stringify(SESP)); }
-    }catch(e2){}
+      // Recargar si: tiene códigos viejos ESF- O si SESP tiene más registros que el guardado
+      if(_tieneViejo || _maxIdSESP > _maxIdGuardado){
+        // Conservar ediciones manuales del usuario (registros con id > max SESP)
+        var _nuevosUsuario=_espArr.filter(function(e){return e.id>_maxIdSESP;});
+        var _merged=SESP.concat(_nuevosUsuario);
+        localStorage.setItem('e_esp', JSON.stringify(_merged));
+        console.log('✓ SESP actualizado: '+_merged.length+' especies ('+_nuevosUsuario.length+' del usuario conservadas)');
+      }
+    }catch(e2){ localStorage.setItem('e_esp', JSON.stringify(SESP)); }
   }
     if(!localStorage.getItem('e_fun')) localStorage.setItem('e_fun', JSON.stringify(SFUN));
     if(!localStorage.getItem('e_pre')) localStorage.setItem('e_pre','[]');
