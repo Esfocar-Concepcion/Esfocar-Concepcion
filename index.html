@@ -189,9 +189,10 @@ tr:hover td{background:#1e2820}
   </div>
   <div class="fg"><label>Nombre del bien</label><input id="eNom" placeholder="Nombre completo del bien"></div>
   <div class="fg2">
-    <div class="fg"><label>Dependencia</label><select id="eDep"></select></div>
+    <div class="fg"><label>Unidad</label><select id="eUnidad"><option value="conc">🏫 ESFOCAR CONCEPCIÓN</option><option value="hual">🚢 ESC. HUALPÉN</option></select></div>
     <div class="fg"><label>Estado</label><select id="eEst"><option value="A">ACTIVO</option><option value="P">PRESTADO</option><option value="B">BAJA</option></select></div>
   </div>
+  <div class="fg"><label>Dependencia</label><select id="eDep"></select></div>
   <div style="border-top:1px solid #2a3a2e;margin:14px 0 12px;padding-top:12px">
     <div style="font-size:.68rem;letter-spacing:2px;color:#6ab87a;text-transform:uppercase;margin-bottom:10px">&#128187; Datos T&eacute;cnicos / Identificaci&oacute;n</div>
     <div class="fg3">
@@ -462,7 +463,7 @@ var SPBAJ_INICIAL=[
 {"id":145,"cod":"1107731358-5","nom":"MONITOR","mot":"Obsoleta / vida útil cumplida","fec":"2024-05-24","nres":"937","origen":"Concepción","serie":"5OH9LZ608056","marca":"SAMSUNG","obs":"Res.Ex.N°937 Cerrillos 24-05-2024"}
 ];
 
-var S={user:null,isAdmin:false,admTab:'seg',fuTab:'all',dep:[],esp:[],pre:[],baj:[],fun:[],log:[],hloc:[],hesp:[],view:'dash',pg:1,esQ:'',esD:'',fuQ:'',mvT:'pre',htab:'ub',histQ:'',histPg:1,histUb:'',eid:null,fid:null,asigFid:null,bajQ:'',bajN:'',esp2Q:'',esp2D:'',tecQ:'',tecD:'',tecCampo:'',pbajQ:'',pbajD:'',bsfQ:'',bsfD:'',pbaj:JSON.parse(JSON.stringify(SPBAJ_INICIAL)),bsf:[]};
+var S={user:null,isAdmin:false,admTab:'seg',fuTab:'all',dep:[],esp:[],pre:[],baj:[],fun:[],log:[],hloc:[],hesp:[],view:'dash',pg:1,esQ:'',esD:'',fuQ:'',mvT:'pre',htab:'ub',histQ:'',histPg:1,histUb:'',eid:null,fid:null,asigFid:null,bajQ:'',bajN:'',esp2Q:'',esp2D:'',esp2Ub:'todo',tecQ:'',tecD:'',tecCampo:'',pbajQ:'',pbajD:'',bsfQ:'',bsfD:'',pbaj:JSON.parse(JSON.stringify(SPBAJ_INICIAL)),bsf:[]};
 
 function sv(){
   try{
@@ -600,6 +601,7 @@ function oAddEsp(){
   document.getElementById('eEst').value='A';
   document.getElementById('eAnio').value=new Date().getFullYear().toString();
   document.getElementById('eCant').value='1';
+  document.getElementById('eUnidad').value='conc';
   document.getElementById('eDep').innerHTML=S.dep.map(function(d){return'<option value="'+d.id+'">'+esc(d.nombre)+'</option>';}).join('');
   // Auto-generar código único CONC-XXXXX
   var todos=S.esp.map(function(e){return e.cod||'';});
@@ -609,7 +611,7 @@ function oAddEsp(){
   document.getElementById('eCod').value='CONC-'+sig;
   oMdl('mEsp');
 }
-function oEditEsp(id){var e=S.esp.find(function(x){return x.id===id;});if(!e)return;S.eid=id;document.getElementById('mEspT').textContent='Editar Bien — '+esc(e.cod);document.getElementById('eCod').value=e.cod;document.getElementById('eNom').value=e.nom;document.getElementById('eObs').value=e.obs||'';document.getElementById('eEst').value=e.est;document.getElementById('eAnio').value=e.anio||'2026';document.getElementById('eBcu').value=e.bcu||'';document.getElementById('eSerie').value=e.serie||'';document.getElementById('eCant').value=e.cant||1;document.getElementById('eDep').innerHTML=S.dep.map(function(d){return'<option value="'+d.id+'"'+(d.id===e.did?' selected':'')+'>'+esc(d.nombre)+'</option>';}).join('');oMdl('mEsp');}
+function oEditEsp(id){var e=S.esp.find(function(x){return x.id===id;});if(!e)return;S.eid=id;document.getElementById('mEspT').textContent='Editar Bien — '+esc(e.cod);document.getElementById('eCod').value=e.cod;document.getElementById('eNom').value=e.nom;document.getElementById('eObs').value=e.obs||'';document.getElementById('eEst').value=e.est;document.getElementById('eAnio').value=e.anio||'2026';document.getElementById('eBcu').value=e.bcu||'';document.getElementById('eSerie').value=e.serie||'';document.getElementById('eCant').value=e.cant||1;document.getElementById('eUnidad').value=e.unidad||'conc';document.getElementById('eDep').innerHTML=S.dep.map(function(d){return'<option value="'+d.id+'"'+(d.id===e.did?' selected':'')+'>'+esc(d.nombre)+'</option>';}).join('');oMdl('mEsp');}
 function saveEsp(){
   var cod=document.getElementById('eCod').value.trim().toUpperCase();
   var nom=document.getElementById('eNom').value.trim();
@@ -621,12 +623,13 @@ function saveEsp(){
   var did=parseInt(document.getElementById('eDep').value);
   var est=document.getElementById('eEst').value;
   var anio=document.getElementById('eAnio').value;
+  var unidad=document.getElementById('eUnidad').value||'conc';
   if(S.eid!=null){
     // Al editar: verificar duplicado en otros registros (excluir el actual)
     var dupEdit=S.esp.find(function(x){return x.id!==S.eid&&x.cod.toUpperCase()===cod;});
     if(dupEdit){alert('⚠️ Ya existe otro bien con el código "'+cod+'" (ID '+dupEdit.id+': '+dupEdit.nom+').\nNo se puede guardar con ese código.');return;}
     var e=S.esp.find(function(x){return x.id===S.eid;});
-    if(e){e.cod=cod;e.nom=nom;e.obs=obs;e.did=did;e.est=est;e.anio=anio;e.bcu=bcu;e.serie=serie;e.cant=cant;}
+    if(e){e.cod=cod;e.nom=nom;e.obs=obs;e.did=did;e.est=est;e.anio=anio;e.bcu=bcu;e.serie=serie;e.cant=cant;e.unidad=unidad;}
     log('Editó: '+cod);
     sv();cMdl('mEsp');
     if(S.view==='tec')rTec();else rEsp();
@@ -635,7 +638,7 @@ function saveEsp(){
     var dup=S.esp.find(function(x){return x.cod.toUpperCase()===cod;});
     if(dup){alert('⚠️ El código "'+cod+'" ya está registrado en el inventario.\n\nBien existente: '+dup.nom+'\nID: '+dup.id+'\n\nNo se permite ingresar especies duplicadas.');return;}
     // Si cant>1, crear múltiples registros con isNuevo=true
-    var base={cod:cod,nom:nom,obs:obs,did:did,est:est,anio:anio,bcu:bcu,serie:serie,cant:1,cid:null,isNuevo:true};
+    var base={cod:cod,nom:nom,obs:obs,did:did,est:est,anio:anio,bcu:bcu,serie:serie,cant:1,cid:null,isNuevo:true,unidad:unidad};
     if(cant>1){
       var baseN=0;S.esp.forEach(function(e){var m=(e.cod||'').match(/^CONC-(\d+)$/);if(m){var n=parseInt(m[1]);if(n>baseN)baseN=n;}});
       for(var i=0;i<cant;i++){var r=Object.assign({},base);r.id=nid(S.esp);var sig2=String(baseN+i+1).padStart(5,'0');r.cod='CONC-'+sig2;S.esp.push(r);}
@@ -2825,47 +2828,109 @@ function rEsp2(){
   var PER=30;
   var q=(S.esp2Q||'').toLowerCase();
   var did=S.esp2D?parseInt(S.esp2D):0;
-  // En Espera: SOLO bienes nuevos ingresados (isNuevo=true)
+  var filtroUb=S.esp2Ub||'todo';
+
   var todos=S.esp.filter(function(e){return e.isNuevo===true;});
+
+  function esHual(e){
+    if(e.unidad==='hual') return true;
+    var dep=S.dep.find(function(d){return d.id===e.did;});
+    return dep&&(dep.nombre.toUpperCase().indexOf('HUALP')>=0||dep.nombre.toUpperCase().indexOf('HUAL\u00c9N')>=0);
+  }
+  function esConc(e){ return !esHual(e); }
+
   var fl=todos.filter(function(e){
+    var matchUb=(filtroUb==='todo')||(filtroUb==='conc'&&esConc(e))||(filtroUb==='hual'&&esHual(e));
     var matchQ=!q||(e.nom.toLowerCase().indexOf(q)>=0||e.cod.toLowerCase().indexOf(q)>=0);
     var matchD=!did||e.did===did;
-    return matchQ&&matchD;
+    return matchUb&&matchQ&&matchD;
   });
-  var sinCust=todos.filter(function(e){return e.cid===null||e.cid===undefined;}).length;
+
+  var sinCust=todos.filter(function(e){return !e.cid;}).length;
   var conCust=todos.length-sinCust;
-  var pg=Math.max(1,Math.ceil(fl.length/PER));if(S.pg>pg)S.pg=pg;
+  var nConc=todos.filter(esConc).length;
+  var nHual=todos.filter(esHual).length;
+
+  var pg=Math.max(1,Math.ceil(fl.length/PER));
+  if(S.pg>pg)S.pg=pg;
   var sl=fl.slice((S.pg-1)*PER,S.pg*PER);
+
   var depOpts='<option value="">Todas las dependencias</option>';
-  for(var i=0;i<S.dep.length;i++)depOpts+='<option value="'+S.dep[i].id+'"'+((S.esp2D&&parseInt(S.esp2D)===S.dep[i].id)?' selected':'')+'>'+esc(S.dep[i].nombre)+'</option>';
+  for(var i=0;i<S.dep.length;i++)
+    depOpts+='<option value="'+S.dep[i].id+'"'+((S.esp2D&&parseInt(S.esp2D)===S.dep[i].id)?' selected':'')+'>'+esc(S.dep[i].nombre)+'</option>';
+
   var rows='';
   for(var j=0;j<sl.length;j++){
     var e=sl[j];
-    var dep=S.dep.find(function(d){return d.id===e.did;})||{nombre:'\u2014'};
+    var dep=S.dep.find(function(d){return d.id===e.did;})||null;
     var tieneCust=(e.cid!==null&&e.cid!==undefined);
     var fun=tieneCust?S.fun.find(function(f){return f.id===e.cid;}):null;
+    var uEsHual=esHual(e);
+    var uLbl=uEsHual?'🚢 Hualpén':'🏫 Concepción';
+    var uCol=uEsHual?'#5bc0de':'#6ab87a';
+    var depTxt=dep?esc(dep.nombre):'<span style="color:#d4aa30">⏳ Sin asignar</span>';
     rows+='<tr>';
     rows+='<td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(e.cod)+'</td>';
     rows+='<td style="font-size:.79rem">'+esc(e.nom)+'</td>';
-    rows+='<td style="font-size:.75rem">'+esc(dep.nombre)+'</td>';
+    rows+='<td><span style="font-size:.72rem;font-weight:600;color:'+uCol+'">'+uLbl+'</span></td>';
+    rows+='<td style="font-size:.75rem">'+depTxt+'</td>';
     rows+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
-    rows+='<td style="font-size:.71rem">'+(tieneCust?'<span style="color:#6ab87a">&#10003; '+(fun?esc(fun.nom):'Asignado')+'</span>':'<span style="color:#d4aa30">&#9203; Pendiente</span>')+'</td>';
-    rows+='<td style="white-space:nowrap"><button class="btn bl sm" onclick="oEditEsp('+e.id+')">&#9998;</button></td>';
+    rows+='<td style="font-size:.71rem">'+(tieneCust?'<span style="color:#6ab87a">\u2713 '+(fun?esc(fun.nom):'Asignado')+'</span>':'<span style="color:#d4aa30">\u23f3 Pendiente</span>')+'</td>';
+    rows+='<td style="white-space:nowrap">';
+    rows+='<button class="btn bl sm" onclick="oEditEsp('+e.id+')" title="Editar">\u270f\ufe0f</button> ';
+    rows+='<button class="btn gn sm" onclick="oPreEsp('+e.id+')" title="Pr\u00e9stamo">\ud83d\udd04</button> ';
+    rows+='<button class="btn yw sm" onclick="oBajEsp('+e.id+')" title="Dar de baja">\ud83d\uddd1</button>';
+    rows+='</td>';
     rows+='</tr>';
   }
+
+  var tabStyle='padding:6px 16px;border-radius:6px;cursor:pointer;font-size:.8rem;border:1px solid #2a3a2e;margin-right:6px;';
+  var tabOn ='background:#1e3a28;color:#6ab87a;'+tabStyle;
+  var tabOff='background:#141414;color:#6a8570;'+tabStyle;
+
   var h='<div class="sGrid">';
-  h+='<div class="sCd w"><div class="ico">&#10010;</div><div class="val">'+todos.length+'</div><div class="lbl">Nuevos Ingresados</div></div>';
-  h+='<div class="sCd" style="background:rgba(212,170,48,.13)"><div class="ico">&#9203;</div><div class="val">'+sinCust+'</div><div class="lbl">Sin Custodio</div></div>';
-  h+='<div class="sCd" style="background:rgba(106,184,122,.13)"><div class="ico">&#10003;</div><div class="val">'+conCust+'</div><div class="lbl">Con Custodio</div></div>';
-  h+='<div class="sCd b"><div class="ico">&#128269;</div><div class="val">'+fl.length+'</div><div class="lbl">Filtrados</div></div>';
+  h+='<div class="sCd w"><div class="ico">\u2795</div><div class="val">'+todos.length+'</div><div class="lbl">Nuevos Ingresados</div></div>';
+  h+='<div class="sCd" style="background:rgba(212,170,48,.13)"><div class="ico">\u23f3</div><div class="val">'+sinCust+'</div><div class="lbl">Sin Custodio</div></div>';
+  h+='<div class="sCd" style="background:rgba(106,184,122,.13)"><div class="ico">\u2713</div><div class="val">'+conCust+'</div><div class="lbl">Con Custodio</div></div>';
+  h+='<div class="sCd b"><div class="ico">\ud83d\udd0d</div><div class="val">'+fl.length+'</div><div class="lbl">Filtrados</div></div>';
   h+='</div>';
+
+  h+='<div style="margin:14px 0 10px">';
+  h+='<button style="'+(filtroUb==='todo'?tabOn:tabOff)+'" onclick="S.esp2Ub=\'todo\';S.pg=1;rEsp2()">\ud83d\udccb Todo ('+todos.length+')</button>';
+  h+='<button style="'+(filtroUb==='conc'?tabOn:tabOff)+'" onclick="S.esp2Ub=\'conc\';S.pg=1;rEsp2()">\ud83c\udfeb Concepci\u00f3n ('+nConc+')</button>';
+  h+='<button style="'+(filtroUb==='hual'?tabOn:tabOff)+'" onclick="S.esp2Ub=\'hual\';S.pg=1;rEsp2()">\ud83d\udea2 Hualpén ('+nHual+')</button>';
+  h+='</div>';
+
   h+='<div class="tWrap">';
-  h+='<div class="tHead"><h3>&#9203; Bienes nuevos ingresados al sistema</h3><span style="font-size:.75rem;color:#6a8570">Solo se muestran bienes registrados desde 2026 en adelante — Los bienes preexistentes no aparecen aqu\u00ed</span></div>';
-  h+='<div class="esSrch"><input type="text" placeholder="&#128269; C\u00F3digo o nombre..." value="'+esc(S.esp2Q||'')+'" oninput="S.esp2Q=this.value;S.pg=1;rEsp2()"><select onchange="S.esp2D=this.value;S.pg=1;rEsp2()">'+depOpts+'</select></div>';
-  h+='<table><tr><th>C\u00F3digo</th><th>Nombre</th><th>Dependencia</th><th>Estado</th><th>Custodio</th><th></th></tr>'+(rows||'<tr><td colspan="6" class="empty">&#43; A\u00fan no se han ingresado bienes nuevos. Use el bot\u00F3n + Nuevo Bien en Cat\u00E1logo.</td></tr>')+'</table>';
-  if(pg>1)h+='<div class="pgCtrl"><button onclick="S.pg=Math.max(1,S.pg-1);rEsp2()">&#9664; Ant.</button><span>P\u00E1g. '+S.pg+' / '+pg+'</span><button onclick="S.pg=Math.min('+pg+',S.pg+1);rEsp2()">Sig. &#9654;</button></div>';
+  h+='<div class="tHead"><h3>\u23f3 Bienes nuevos — pendientes de asignaci\u00f3n</h3></div>';
+  h+='<div class="esSrch"><input type="text" placeholder="\ud83d\udd0d C\u00f3digo o nombre..." value="'+esc(S.esp2Q||'')+'" oninput="S.esp2Q=this.value;S.pg=1;rEsp2()"><select onchange="S.esp2D=this.value;S.pg=1;rEsp2()">'+depOpts+'</select></div>';
+  h+='<table><tr><th>C\u00f3digo</th><th>Nombre</th><th>Unidad</th><th>Dependencia</th><th>Estado</th><th>Custodio</th><th>Acciones</th></tr>';
+  h+=(rows||'<tr><td colspan="7" class="empty">Sin registros para este filtro.</td></tr>');
+  h+='</table>';
+  if(pg>1)h+='<div class="pgCtrl"><button onclick="S.pg=Math.max(1,S.pg-1);rEsp2()">\u25c4 Ant.</button><span>P\u00e1g. '+S.pg+' / '+pg+'</span><button onclick="S.pg=Math.min('+pg+',S.pg+1);rEsp2()">Sig. \u25ba</button></div>';
   h+='</div>';
   document.getElementById('cnt').innerHTML=h;
+}
+
+function oPreEsp(eid){
+  var e=S.esp.find(function(x){return x.id===eid;});
+  if(!e)return;
+  ['pFq','pObs'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('pFl').innerHTML='';
+  document.getElementById('pEq').value=e.nom+' ('+e.cod+')';
+  document.getElementById('pEid').value=eid;
+  document.getElementById('pFid').value='';
+  document.getElementById('pFec').value=td();
+  oMdl('mPre');
+}
+
+function oBajEsp(eid){
+  var e=S.esp.find(function(x){return x.id===eid;});
+  if(!e)return;
+  document.getElementById('bEq').value=e.nom+' ('+e.cod+')';
+  document.getElementById('bEid').value=eid;
+  document.getElementById('bEl').innerHTML='';
+  oMdl('mBaj');
 }
 
 // ============================================================
