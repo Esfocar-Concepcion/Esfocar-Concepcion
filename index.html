@@ -317,7 +317,7 @@ var SFUN=[{"id":1,"nom":"ESPINOZA SAGUER RODRIGO ANDRES","grado":"MAYOR","rut":"
 /* ═══ BAJAS PRE-CARGADAS — RESOLUCIONES OFICIALES ═══ */
 var SPBAJ_INICIAL=[]
 
-var S={user:null,isAdmin:false,admTab:'seg',fuTab:'all',dep:[],esp:[],pre:[],baj:[],fun:[],log:[],hloc:[],hesp:[],view:'dash',pg:1,esQ:'',esD:'',fuQ:'',mvT:'pre',htab:'ub',histQ:'',histPg:1,histUb:'',eid:null,fid:null,asigFid:null,bajQ:'',bajN:'',esp2Q:'',esp2D:'',esp2Ub:'todo',esp2DepConc:'',esp2DepHual:'',tecQ:'',tecD:'',tecCampo:'',pbajQ:'',pbajD:'',bsfQ:'',bsfD:'',hualTab:'lista',hualQ:'',hualEditId:null,hualEditQ:'',hualEditEst:'',hualPlQ:'',pbaj:JSON.parse(JSON.stringify(SPBAJ_INICIAL)),bsf:[]};
+var S={user:null,isAdmin:false,admTab:'seg',fuTab:'all',dep:[],esp:[],pre:[],baj:[],fun:[],log:[],hloc:[],hesp:[],view:'dash',pg:1,esQ:'',esD:'',fuQ:'',mvT:'pre',htab:'ub',histQ:'',histPg:1,histUb:'',eid:null,fid:null,asigFid:null,bajQ:'',bajN:'',esp2Q:'',esp2D:'',esp2Ub:'todo',esp2DepConc:'',esp2DepHual:'',tecQ:'',tecD:'',tecCampo:'',pbajQ:'',pbajD:'',bsfQ:'',bsfD:'',hualTab:'catalogo',hualQ:'',hualCatQ:'',hualCatD:'',hualCatEst:'',hualEditId:null,hualEditQ:'',hualEditEst:'',hualPlQ:'',pbaj:JSON.parse(JSON.stringify(SPBAJ_INICIAL)),bsf:[]};
 
 function sv(){
   try{
@@ -350,7 +350,7 @@ function ld(){
   S.hloc=lk('e_hloc',[]); S.hesp=lk('e_hesp',[]); S.bsf=lk('e_bsf',[]);
   S.hist=lk('e_hist',[]); S.mov=lk('e_mov',[]);
   for(var i=0;i<S.esp.length;i++) if(S.esp[i].cid===undefined) S.esp[i].cid=null;
-  // S.pbaj: cargar solo entradas guardadas manualmente en localStorage
+  // S.pbaj: cargar solo entradas guardadas manualmente
   var pbajGuardado=lk('e_pbaj',[]);
   pbajGuardado.forEach(function(p){S.pbaj.push(p);});
   sv();
@@ -1494,237 +1494,146 @@ function abrirGeneradorPlanilla(dep){alert('Módulo de planilla desactivado temp
 function cerrarPlanModal(){}
 function generarPlanillaWord(dep){alert('Módulo de planilla desactivado temporalmente.');}
 function rHual(){
-  var tab=S.hualTab||'lista';
-  var depHualAll=S.dep.filter(function(d){
-    return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);
-  });
-
-  var tabs=[
-    {id:'lista',   ico:'\ud83c\udfe2', label:'Dependencias'},
-    {id:'edicion', ico:'\u270f\ufe0f',  label:'Edici\u00f3n'},
-    {id:'enc',     ico:'\ud83d\udc64', label:'Encargados'},
-    {id:'plan',    ico:'\ud83d\udcc4', label:'Planillas'}
-  ];
-
-  var h='<div class="sHdr" style="margin-bottom:10px"><h2>\ud83d\udea2 Escuadr\u00f3n Hualpén</h2></div>';
+  var tab=S.hualTab||'catalogo';
+  var depHualAll=S.dep.filter(function(d){return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
+  var espHual=S.esp.filter(function(e){return e.unidad==='hual';});
+  var tabs=[{id:'catalogo',ico:'\ud83d\udcdc',label:'Cat\u00e1logo'},{id:'lista',ico:'\ud83c\udfe2',label:'Dependencias'},{id:'edicion',ico:'\u270f\ufe0f',label:'Edici\u00f3n'},{id:'enc',ico:'\ud83d\udc64',label:'Encargados'},{id:'plan',ico:'\ud83d\udcc4',label:'Planillas'}];
+  var h='<div class="sHdr" style="margin-bottom:10px"><h2>\ud83d\udea2 Escuadr\u00f3n Hualpén <span style="font-size:.75rem;color:#70a4d4;font-weight:400">'+espHual.length+' bienes</span></h2></div>';
   h+='<div class="tabs">';
-  tabs.forEach(function(t){
-    var on=(t.id===tab);
-    h+='<div class="tab'+(on?' on':'')+'" onclick="S.hualTab=\''+t.id+'\';rHual()">'+t.ico+' '+t.label+'</div>';
-  });
+  tabs.forEach(function(t){var on=(t.id===tab);h+='<div class="tab'+(on?' on':'')+'" onclick="S.hualTab=\''+t.id+'\';rHual()">'+t.ico+' '+t.label+'</div>';});
   h+='</div>';
-
-  /* ── LISTA ──────────────────────────────── */
-  if(tab==='lista'){
+  if(tab==='catalogo'){
+    var qc=(S.hualCatQ||'').toLowerCase(),didC=S.hualCatD?parseInt(S.hualCatD):0,estC=S.hualCatEst||'';
+    var fl=espHual.filter(function(e){
+      var mQ=!qc||(e.nom.toLowerCase().indexOf(qc)>=0||e.cod.toLowerCase().indexOf(qc)>=0||(e.bcu||'').toLowerCase().indexOf(qc)>=0||(e.serie||'').toLowerCase().indexOf(qc)>=0);
+      return mQ&&(!didC||e.did===didC)&&(!estC||e.est===estC);
+    });
+    var actH=espHual.filter(function(e){return e.est==='A';}).length;
+    var prtH=espHual.filter(function(e){return e.est==='P';}).length;
+    var sinDep=espHual.filter(function(e){return !e.did;}).length;
+    h+='<div class="sGrid" style="margin-bottom:14px">';
+    h+='<div class="sCd b"><div class="ico">\ud83d\udcdc</div><div class="val">'+espHual.length+'</div><div class="lbl">Total Hualpén</div></div>';
+    h+='<div class="sCd"><div class="ico">\u2705</div><div class="val" style="color:#6ab87a">'+actH+'</div><div class="lbl">Activos</div></div>';
+    h+='<div class="sCd w"><div class="ico">\ud83d\udd04</div><div class="val">'+prtH+'</div><div class="lbl">Prestados</div></div>';
+    h+='<div class="sCd" style="background:rgba(212,170,48,.13)"><div class="ico">\u26a0\ufe0f</div><div class="val" style="color:#d4aa30">'+sinDep+'</div><div class="lbl">Sin Dep.</div></div></div>';
+    var depOptsC='<option value="">Todas las dependencias</option>';
+    depHualAll.forEach(function(d){depOptsC+='<option value="'+d.id+'"'+(didC===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';});
+    h+='<div class="tWrap"><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+    h+='<input type="text" placeholder="\ud83d\udd0d C\u00f3digo, nombre, serie, BCU..." value="'+esc(S.hualCatQ||'')+'" oninput="S.hualCatQ=this.value;rHual()" style="flex:2;min-width:180px">';
+    h+='<select onchange="S.hualCatD=this.value;rHual()" style="flex:1;min-width:160px">'+depOptsC+'</select>';
+    h+='<select onchange="S.hualCatEst=this.value;rHual()" style="min-width:120px"><option value=""'+(estC===''?' selected':'')+'>Todos estados</option><option value="A"'+(estC==='A'?' selected':'')+'>Activos</option><option value="P"'+(estC==='P'?' selected':'')+'>Prestados</option><option value="B"'+(estC==='B'?' selected':'')+'>Bajas</option></select></div>';
+    h+='<div class="infoBanner">Mostrando <strong>'+fl.length+'</strong> de '+espHual.length+' bienes Hualpén</div>';
+    h+='<table><tr><th>C\u00f3digo</th><th>Nombre</th><th>N\u00b0 Serie</th><th>BCU/SAP</th><th>Dependencia</th><th>Custodio</th><th>Est.</th><th>Acciones</th></tr>';
+    if(!fl.length){h+='<tr><td colspan="8" class="empty">'+(espHual.length===0?'Sin bienes Hualpén \u2014 asigna desde En Espera':'Sin resultados para este filtro')+'</td></tr>';}
+    else{
+      fl.slice(0,50).forEach(function(e){
+        var dep=S.dep.find(function(d){return d.id===e.did;})||null;
+        var cust=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;
+        h+='<tr><td style="font-family:monospace;font-size:.72rem;color:#a8d5b5">'+esc(e.cod)+'</td>';
+        h+='<td style="font-size:.79rem;font-weight:600">'+esc(e.nom)+'</td>';
+        h+='<td style="font-family:monospace;font-size:.71rem;color:#70a4d4">'+(e.serie&&e.serie.trim()&&e.serie!=='-'?esc(e.serie):'<span style="color:#4a6060">\u2014</span>')+'</td>';
+        h+='<td style="font-family:monospace;font-size:.71rem;color:#6ab87a">'+(e.bcu?esc(e.bcu):'<span style="color:#d47070">\u2014</span>')+'</td>';
+        h+='<td style="font-size:.73rem;color:#8fb89a">'+(dep?esc(dep.nombre):'<span style="color:#d4aa30">\u26a0\ufe0f Sin dep.</span>')+'</td>';
+        h+='<td style="font-size:.72rem">'+(cust?'<span style="color:#6ab87a">\u2713 '+esc(cust.nom.split(',')[0])+'</span>':'<span style="color:#6a8570">\u2014</span>')+'</td>';
+        h+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
+        h+='<td style="white-space:nowrap"><button class="btn bl sm" onclick="oEditEsp('+e.id+')">\u270f\ufe0f</button> <button class="btn gn sm" onclick="oAsigCustTec('+e.id+')">\ud83d\udc64</button></td></tr>';
+      });
+      if(fl.length>50)h+='<tr><td colspan="8" style="text-align:center;color:#6a8570;font-size:.75rem">... y '+(fl.length-50)+' m\u00e1s. Usa el filtro.</td></tr>';
+    }
+    h+='</table></div>';
+  } else if(tab==='lista'){
     var qh=(S.hualQ||'').toLowerCase();
-    var fl=depHualAll.filter(function(d){return !qh||d.nombre.toLowerCase().indexOf(qh)>=0;});
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
-    h+='<input type="text" placeholder="Buscar dependencia Hualpén..." value="'+esc(S.hualQ||'')+'" oninput="S.hualQ=this.value;rHual()" style="flex:1;max-width:300px">';
-    h+='<span style="font-size:.76rem;color:#6a8570">'+fl.length+' dependencias</span>';
-    h+='<button class="btn gn" onclick="oAddHDep()">+ Nueva Dependencia</button>';
-    h+='</div>';
-    h+='<div id="addHDepArea"></div>';
-    if(!fl.length){
-      h+='<div class="empty">Sin dependencias Hualpén. Crea una con el bot\u00f3n de arriba.</div>';
-    } else {
+    var fl2=depHualAll.filter(function(d){return !qh||d.nombre.toLowerCase().indexOf(qh)>=0;});
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><input type="text" placeholder="Buscar dependencia..." value="'+esc(S.hualQ||'')+'" oninput="S.hualQ=this.value;rHual()" style="flex:1;max-width:300px"><span style="font-size:.76rem;color:#6a8570">'+fl2.length+' dependencias</span><button class="btn gn" onclick="oAddHDep()">+ Nueva</button></div><div id="addHDepArea"></div>';
+    if(!fl2.length){h+='<div class="empty">Sin dependencias Hualpén.</div>';}
+    else{
       h+='<div class="dGrid">';
-      fl.forEach(function(d){
+      fl2.forEach(function(d){
         var cnt=S.esp.filter(function(e){return e.did===d.id;}).length;
         var act=S.esp.filter(function(e){return e.did===d.id&&e.est==='A';}).length;
         var enc=d.encNom?'<div style="font-size:.67rem;color:#6ab87a;margin-top:4px">'+esc((d.encGrado?d.encGrado+' ':'')+d.encNom)+'</div>':'';
-        h+='<div class="dCd">';
-        h+='<div class="dId">DEP-'+String(d.id).padStart(3,'0')+'</div>';
-        h+='<div class="dNm">'+esc(d.nombre)+'</div>'+enc;
-        h+='<div class="dCnt">'+cnt+'</div><div class="dLbl">bienes &mdash; <span style="color:#6ab87a">'+act+' activos</span></div>';
-        h+='<div style="margin-top:10px;display:flex;gap:6px">';
-        h+='<button class="btn gn sm" onclick="event.stopPropagation();dlPlanillaWord('+d.id+')" title="Planilla Word">\ud83d\udcc4</button>';
-        h+='<button class="btn bl sm" onclick="event.stopPropagation();S.hualTab=\'edicion\';S.hualEditId='+d.id+';rHual()" title="Editar bienes">\u270f\ufe0f</button>';
-        h+='<button class="btn rd sm" onclick="event.stopPropagation();dDepHual('+d.id+')" title="Eliminar">\ud83d\uddd1</button>';
-        h+='</div></div>';
+        h+='<div class="dCd"><div class="dId">DEP-'+String(d.id).padStart(3,'0')+'</div><div class="dNm">'+esc(d.nombre)+'</div>'+enc;
+        h+='<div class="dCnt">'+cnt+'</div><div class="dLbl">bienes \u2014 <span style="color:#6ab87a">'+act+' activos</span></div>';
+        h+='<div style="margin-top:10px;display:flex;gap:6px"><button class="btn gn sm" onclick="event.stopPropagation();dlPlanillaWord('+d.id+')">\ud83d\udcc4</button><button class="btn bl sm" onclick="event.stopPropagation();S.hualTab=\'edicion\';S.hualEditId='+d.id+';rHual()">\u270f\ufe0f</button><button class="btn rd sm" onclick="event.stopPropagation();dDepHual('+d.id+')">\ud83d\uddd1</button></div></div>';
       });
       h+='</div>';
     }
-
-  /* ── EDICIÓN ────────────────────────────── */
   } else if(tab==='edicion'){
     var depSelH=S.hualEditId?S.dep.find(function(d){return d.id===S.hualEditId;}):null;
-    h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">';
-    h+='<select onchange="S.hualEditId=this.value?parseInt(this.value):null;S.hualEditQ=\'\';rHual()" style="flex:1;max-width:340px">';
-    h+='<option value="">Selecciona dependencia Hualpén</option>';
-    depHualAll.forEach(function(d){
-      h+='<option value="'+d.id+'"'+(depSelH&&depSelH.id===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';
-    });
+    h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap"><select onchange="S.hualEditId=this.value?parseInt(this.value):null;S.hualEditQ=\'\';rHual()" style="flex:1;max-width:340px"><option value="">Selecciona dependencia Hualpén</option>';
+    depHualAll.forEach(function(d){h+='<option value="'+d.id+'"'+(depSelH&&depSelH.id===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';});
     h+='</select>';
-    if(depSelH){
-      h+='<button class="btn gn sm" onclick="abrirAgregarEspDepHual('+depSelH.id+')">Agregar especie</button>';
-      h+='<button class="btn bl sm" onclick="dlPlanillaWord('+depSelH.id+')">Planilla</button>';
-    }
+    if(depSelH){h+='<button class="btn gn sm" onclick="abrirAgregarEspDepHual('+depSelH.id+')">Agregar especie</button> <button class="btn bl sm" onclick="dlPlanillaWord('+depSelH.id+')">Planilla</button>';}
     h+='</div>';
-    if(!depSelH){
-      h+='<div class="empty" style="padding:40px">Selecciona una dependencia para editar sus bienes</div>';
-    } else {
+    if(!depSelH){h+='<div class="empty" style="padding:40px">Selecciona una dependencia</div>';}
+    else{
       var items=S.esp.filter(function(e){return e.did===depSelH.id;});
       var qe2=(S.hualEditQ||'').toLowerCase();
-      var fl3=items.filter(function(e){
-        var mQ=!qe2||(e.nom.toLowerCase().indexOf(qe2)>=0||e.cod.toLowerCase().indexOf(qe2)>=0);
-        var mE=!S.hualEditEst||e.est===S.hualEditEst;
-        return mQ&&mE;
-      });
-      h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
-      h+='<input type="text" placeholder="Filtrar bienes..." value="'+esc(S.hualEditQ||'')+'" oninput="S.hualEditQ=this.value;rHual()" style="flex:1">';
-      h+='<select onchange="S.hualEditEst=this.value;rHual()" style="min-width:120px">';
-      h+='<option value=""'+(!(S.hualEditEst)?' selected':'')+'>Todos</option>';
-      h+='<option value="A"'+(S.hualEditEst==='A'?' selected':'')+'>Activos</option>';
-      h+='<option value="P"'+(S.hualEditEst==='P'?' selected':'')+'>Prestados</option>';
-      h+='<option value="B"'+(S.hualEditEst==='B'?' selected':'')+'>Bajas</option>';
-      h+='</select></div>';
-      h+='<div class="infoBanner"><strong>'+esc(depSelH.nombre)+'</strong> &mdash; '+items.length+' bienes, mostrando '+fl3.length+'</div>';
-      h+='<div class="tWrap"><table>';
-      h+='<tr><th>C\u00f3digo</th><th>Nombre</th><th>BCU/SAP</th><th>N\u00b0 Serie</th><th>Est.</th><th style="text-align:center">Acciones</th></tr>';
-      if(!fl3.length){
-        h+='<tr><td colspan="6" class="empty">Sin resultados</td></tr>';
-      } else {
-        fl3.forEach(function(e){
-          var dOpts=S.dep.map(function(d){return '<option value="'+d.id+'"'+(d.id===e.did?' selected':'')+'>'+esc(d.nombre.substring(0,28))+'</option>';}).join('');
-          h+='<tr>';
-          h+='<td style="font-family:monospace;font-size:.72rem;color:#a8d5b5">'+esc(e.cod)+'</td>';
-          h+='<td style="font-size:.79rem;font-weight:600">'+esc(e.nom)+'</td>';
-          h+='<td style="font-family:monospace;font-size:.72rem;color:#6ab87a">'+esc(e.bcu||'')+'</td>';
-          h+='<td style="font-family:monospace;font-size:.72rem;color:#70a4d4">'+esc(e.serie||'')+'</td>';
-          h+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
-          h+='<td style="white-space:nowrap;text-align:center">';
-          h+='<button class="btn bl sm" onclick="oEditEsp('+e.id+')" title="Editar">\u270f\ufe0f</button> ';
-          h+='<select style="background:#141e1a;border:1px solid #2a3a2e;color:#e8ede9;border-radius:5px;font-size:.72rem;padding:3px 5px;max-width:130px" onchange="traslEspDep('+e.id+',this.value);this.value=\'\'" title="Trasladar"><option value="">Trasladar...</option>'+dOpts+'</select> ';
-          h+='<button class="btn rd sm" onclick="elimEspDep('+e.id+')" title="Eliminar">\ud83d\uddd1</button>';
-          h+='</td></tr>';
-        });
-      }
+      var fl3=items.filter(function(e){return (!qe2||(e.nom.toLowerCase().indexOf(qe2)>=0||e.cod.toLowerCase().indexOf(qe2)>=0))&&(!S.hualEditEst||e.est===S.hualEditEst);});
+      h+='<div style="display:flex;gap:8px;margin-bottom:10px"><input type="text" placeholder="Filtrar..." value="'+esc(S.hualEditQ||'')+'" oninput="S.hualEditQ=this.value;rHual()" style="flex:1"><select onchange="S.hualEditEst=this.value;rHual()" style="min-width:120px"><option value="">Todos</option><option value="A">Activos</option><option value="P">Prestados</option><option value="B">Bajas</option></select></div>';
+      h+='<div class="infoBanner"><strong>'+esc(depSelH.nombre)+'</strong> \u2014 '+items.length+' bienes, mostrando '+fl3.length+'</div>';
+      h+='<div class="tWrap"><table><tr><th>C\u00f3digo</th><th>Nombre</th><th>BCU/SAP</th><th>N\u00b0 Serie</th><th>Est.</th><th>Acciones</th></tr>';
+      if(!fl3.length){h+='<tr><td colspan="6" class="empty">Sin resultados</td></tr>';}
+      else{fl3.forEach(function(e){var dOpts=S.dep.map(function(d){return '<option value="'+d.id+'"'+(d.id===e.did?' selected':'')+'>'+esc(d.nombre.substring(0,28))+'</option>';}).join('');h+='<tr><td style="font-family:monospace;font-size:.72rem;color:#a8d5b5">'+esc(e.cod)+'</td><td style="font-size:.79rem;font-weight:600">'+esc(e.nom)+'</td><td style="font-family:monospace;font-size:.72rem;color:#6ab87a">'+esc(e.bcu||'')+'</td><td style="font-family:monospace;font-size:.72rem;color:#70a4d4">'+esc(e.serie||'')+'</td><td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td><td style="white-space:nowrap"><button class="btn bl sm" onclick="oEditEsp('+e.id+')">\u270f\ufe0f</button> <select style="background:#141e1a;border:1px solid #2a3a2e;color:#e8ede9;border-radius:5px;font-size:.72rem;padding:3px 5px;max-width:130px" onchange="traslEspDep('+e.id+',this.value);this.value=\'\'" title="Trasladar"><option value="">Trasladar...</option>'+dOpts+'</select> <button class="btn rd sm" onclick="elimEspDep('+e.id+')">\ud83d\uddd1</button></td></tr>';});}
       h+='</table></div>';
     }
-
-  /* ── ENCARGADOS ─────────────────────────── */
   } else if(tab==='enc'){
-    h+='<div class="infoBanner"><strong>Encargados de Dependencias Hualpén</strong><br>Asigna el funcionario a cargo de cada dependencia. Su nombre aparece en la planilla Word.</div>';
-    h+='<div class="tWrap"><table>';
-    h+='<tr><th>Dependencia</th><th style="text-align:center">Bienes</th><th>Encargado</th><th>Grado/Cargo</th><th style="text-align:center">Acciones</th></tr>';
-    depHualAll.forEach(function(d){
-      var cnt=S.esp.filter(function(e){return e.did===d.id;}).length;
-      h+='<tr>';
-      h+='<td style="font-weight:600;font-size:.82rem">'+esc(d.nombre)+'</td>';
-      h+='<td style="text-align:center;color:#6ab87a;font-weight:700">'+cnt+'</td>';
-      h+='<td><input type="text" id="hEncNom'+d.id+'" value="'+esc(d.encNom||'')+'" placeholder="APELLIDO Nombre" style="width:100%;font-size:.78rem"></td>';
-      h+='<td><input type="text" id="hEncGrado'+d.id+'" value="'+esc(d.encGrado||'')+'" placeholder="Ej: Mayor de Carabineros" style="width:100%;font-size:.78rem"></td>';
-      h+='<td style="text-align:center;white-space:nowrap">';
-      h+='<button class="btn gn sm" onclick="setEncHual('+d.id+')" title="Guardar encargado">\ud83d\udcbe</button> ';
-      h+='<button class="btn bl sm" onclick="dlPlanillaWord('+d.id+')" title="Descargar planilla">\ud83d\udcc4</button>';
-      h+='</td></tr>';
-    });
-    if(!depHualAll.length) h+='<tr><td colspan="5" class="empty">Sin dependencias Hualpén registradas</td></tr>';
+    h+='<div class="infoBanner"><strong>Encargados de Dependencias Hualpén</strong><br>Aparecen en la planilla Word.</div><div class="tWrap"><table><tr><th>Dependencia</th><th style="text-align:center">Bienes</th><th>Encargado</th><th>Grado/Cargo</th><th style="text-align:center">Acciones</th></tr>';
+    depHualAll.forEach(function(d){var cnt=S.esp.filter(function(e){return e.did===d.id;}).length;h+='<tr><td style="font-weight:600;font-size:.82rem">'+esc(d.nombre)+'</td><td style="text-align:center;color:#6ab87a;font-weight:700">'+cnt+'</td><td><input type="text" id="hEncNom'+d.id+'" value="'+esc(d.encNom||'')+'" placeholder="APELLIDO Nombre" style="width:100%;font-size:.78rem"></td><td><input type="text" id="hEncGrado'+d.id+'" value="'+esc(d.encGrado||'')+'" placeholder="Ej: Mayor de Carabineros" style="width:100%;font-size:.78rem"></td><td style="text-align:center;white-space:nowrap"><button class="btn gn sm" onclick="setEncHual('+d.id+')">\ud83d\udcbe</button> <button class="btn bl sm" onclick="dlPlanillaWord('+d.id+')">\ud83d\udcc4</button></td></tr>';});
+    if(!depHualAll.length)h+='<tr><td colspan="5" class="empty">Sin dependencias Hualpén</td></tr>';
     h+='</table></div>';
-
-  /* ── PLANILLAS ──────────────────────────── */
   } else if(tab==='plan'){
-    h+='<div class="infoBanner"><strong>Planillas Hualpén &mdash; Modelo oficial ESFOCAR Libro N\u00b0 1</strong><br>Genera el documento Word con firmas globales configuradas en Dependencias Concepci\u00f3n \u2192 Encargados.</div>';
-    h+='<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">';
-    h+='<input type="text" placeholder="Filtrar dependencia..." oninput="S.hualPlQ=this.value;rHual()" value="'+esc(S.hualPlQ||'')+'" style="flex:1;min-width:200px">';
-    h+='<button class="btn gn" onclick="dlTodasPlanillasHual()">Descargar TODAS</button>';
-    h+='</div>';
-    var qpl2=(S.hualPlQ||'').toLowerCase();
-    var depFl4=depHualAll.filter(function(d){return !qpl2||d.nombre.toLowerCase().indexOf(qpl2)>=0;});
-    h+='<div class="tWrap"><table>';
-    h+='<tr><th>Dependencia</th><th style="text-align:center">Activos</th><th style="text-align:center">Total</th><th>Encargado asignado</th><th></th></tr>';
-    depFl4.forEach(function(d){
-      var espD=S.esp.filter(function(e){return e.did===d.id;});
-      var actD=espD.filter(function(e){return e.est==='A';}).length;
-      var encBadge=d.encNom
-        ?'<span style="color:#6ab87a;font-size:.73rem">'+esc((d.encGrado?d.encGrado+' ':'')+d.encNom)+'</span>'
-        :'<span style="color:#d47070;font-size:.73rem">Sin encargado asignado</span>';
-      h+='<tr>';
-      h+='<td style="font-weight:600;font-size:.82rem">'+esc(d.nombre)+'</td>';
-      h+='<td style="text-align:center;color:#6ab87a;font-weight:700">'+actD+'</td>';
-      h+='<td style="text-align:center;font-weight:700;color:#c8e6cd">'+espD.length+'</td>';
-      h+='<td>'+encBadge+'</td>';
-      h+='<td><button class="btn gn sm" onclick="dlPlanillaWord('+d.id+')">Descargar</button></td>';
-      h+='</tr>';
-    });
-    if(!depFl4.length) h+='<tr><td colspan="5" class="empty">Sin resultados</td></tr>';
+    h+='<div class="infoBanner"><strong>Planillas Hualpén \u2014 Modelo ESFOCAR Libro N\u00b0 1</strong></div><div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center"><input type="text" placeholder="Filtrar dependencia..." oninput="S.hualPlQ=this.value;rHual()" value="'+esc(S.hualPlQ||'')+'" style="flex:1;min-width:200px"><button class="btn gn" onclick="dlTodasPlanillasHual()">Descargar TODAS</button></div>';
+    var qpl=(S.hualPlQ||'').toLowerCase();
+    var depFl4=depHualAll.filter(function(d){return !qpl||d.nombre.toLowerCase().indexOf(qpl)>=0;});
+    h+='<div class="tWrap"><table><tr><th>Dependencia</th><th style="text-align:center">Activos</th><th style="text-align:center">Total</th><th>Encargado</th><th></th></tr>';
+    depFl4.forEach(function(d){var espD=S.esp.filter(function(e){return e.did===d.id;});var actD=espD.filter(function(e){return e.est==='A';}).length;var enc=d.encNom?'<span style="color:#6ab87a;font-size:.73rem">'+esc((d.encGrado?d.encGrado+' ':'')+d.encNom)+'</span>':'<span style="color:#d47070;font-size:.73rem">Sin encargado</span>';h+='<tr><td style="font-weight:600;font-size:.82rem">'+esc(d.nombre)+'</td><td style="text-align:center;color:#6ab87a;font-weight:700">'+actD+'</td><td style="text-align:center;font-weight:700;color:#c8e6cd">'+espD.length+'</td><td>'+enc+'</td><td><button class="btn gn sm" onclick="dlPlanillaWord('+d.id+')">Descargar</button></td></tr>';});
+    if(!depFl4.length)h+='<tr><td colspan="5" class="empty">Sin resultados</td></tr>';
     h+='</table></div>';
   }
-
   document.getElementById('cnt').innerHTML=h;
 }
-
 function oAddHDep(){
-  var area=document.getElementById('addHDepArea');
-  if(!area)return;
-  area.innerHTML='<div style="background:#1e2d25;border:1px solid #3d6040;border-radius:11px;padding:16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'
-    +'<div style="flex:2;min-width:200px"><label style="font-size:.72rem;color:#8fb89a;display:block;margin-bottom:4px;text-transform:uppercase">Nombre dependencia</label>'
-    +'<input id="newHDepNom" placeholder="Ej: OFICINA HUALPÉN" style="width:100%;font-size:.85rem" onkeydown="if(event.key===\'Enter\')saveNewHDep()"></div>'
-    +'<div style="flex:1;min-width:150px"><label style="font-size:.72rem;color:#8fb89a;display:block;margin-bottom:4px;text-transform:uppercase">Nombre hoja corto</label>'
-    +'<input id="newHDepHoja" placeholder="Ej: OF. HUAL." style="width:100%;font-size:.85rem"></div>'
-    +'<button class="btn gn" onclick="saveNewHDep()">Crear</button>'
-    +'<button class="btn rd" onclick="document.getElementById(\'addHDepArea\').innerHTML=\'\'">✕</button></div>';
+  var area=document.getElementById('addHDepArea');if(!area)return;
+  area.innerHTML='<div style="background:#1e2d25;border:1px solid #3d6040;border-radius:11px;padding:16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div style="flex:2;min-width:200px"><label style="font-size:.72rem;color:#8fb89a;display:block;margin-bottom:4px">NOMBRE DEPENDENCIA</label><input id="newHDepNom" placeholder="Ej: OFICINA HUALPÉN" style="width:100%" onkeydown="if(event.key===\'Enter\')saveNewHDep()"></div><div style="flex:1;min-width:140px"><label style="font-size:.72rem;color:#8fb89a;display:block;margin-bottom:4px">HOJA CORTO</label><input id="newHDepHoja" placeholder="Ej: OF. HUAL." style="width:100%"></div><button class="btn gn" onclick="saveNewHDep()">Crear</button><button class="btn rd" onclick="document.getElementById(\'addHDepArea\').innerHTML=\'\'">\u2715</button></div>';
   setTimeout(function(){var el=document.getElementById('newHDepNom');if(el)el.focus();},50);
 }
-
 function saveNewHDep(){
-  var nomEl=document.getElementById('newHDepNom');
-  var hojaEl=document.getElementById('newHDepHoja');
-  if(!nomEl)return;
-  var nom=nomEl.value.trim();
-  if(!nom){alert('Ingresa el nombre de la dependencia.');return;}
+  var nomEl=document.getElementById('newHDepNom'),hojaEl=document.getElementById('newHDepHoja');
+  if(!nomEl)return;var nom=nomEl.value.trim();if(!nom){alert('Ingresa el nombre.');return;}
   var newId=S.dep.length?Math.max.apply(null,S.dep.map(function(d){return d.id;}))+1:1;
   S.dep.push({id:newId,nombre:nom.toUpperCase(),hoja:hojaEl&&hojaEl.value.trim()?hojaEl.value.trim():nom.toUpperCase().substring(0,30),unidad:'hual'});
-  sv();log('Nueva dep. Hualpén: '+nom.toUpperCase());
-  document.getElementById('addHDepArea').innerHTML='';
-  rHual();
+  sv();log('Nueva dep. Hualpén: '+nom.toUpperCase());document.getElementById('addHDepArea').innerHTML='';rHual();
 }
-
 function dDepHual(id){
-  var d=S.dep.find(function(x){return x.id===id;});
-  if(!d)return;
+  var d=S.dep.find(function(x){return x.id===id;});if(!d)return;
   var cnt=S.esp.filter(function(e){return e.did===id;}).length;
-  if(cnt>0&&!confirm('Esta dependencia tiene '+cnt+' bienes asignados. ¿Eliminar igualmente?'))return;
-  if(!confirm('¿Eliminar dependencia '+d.nombre+'?'))return;
-  S.dep=S.dep.filter(function(x){return x.id!==id;});
-  sv();log('Dep. Hualpén eliminada: '+d.nombre);rHual();
+  if(cnt>0&&!confirm('Esta dependencia tiene '+cnt+' bienes. \u00bfEliminar igual?'))return;
+  if(!confirm('\u00bfEliminar '+d.nombre+'?'))return;
+  S.dep=S.dep.filter(function(x){return x.id!==id;});sv();log('Dep. Hualpén eliminada: '+d.nombre);rHual();
 }
-
 function setEncHual(id){
-  var d=S.dep.find(function(x){return x.id===id;});
-  if(!d)return;
-  var nomEl=document.getElementById('hEncNom'+id);
-  var grdEl=document.getElementById('hEncGrado'+id);
-  if(nomEl)d.encNom=nomEl.value.trim().toUpperCase();
-  if(grdEl)d.encGrado=grdEl.value.trim();
-  sv();
-  var btn=event&&event.target;
-  if(btn){btn.textContent='\u2713 OK';setTimeout(function(){btn.textContent='\ud83d\udcbe';},1200);}
-  log('Encargado dep Hualpén '+id+': '+d.encNom);
+  var d=S.dep.find(function(x){return x.id===id;});if(!d)return;
+  var n=document.getElementById('hEncNom'+id),g=document.getElementById('hEncGrado'+id);
+  if(n)d.encNom=n.value.trim().toUpperCase();if(g)d.encGrado=g.value.trim();sv();
+  var btn=event&&event.target;if(btn){btn.textContent='\u2713';setTimeout(function(){btn.textContent='\ud83d\udcbe';},1200);}
+  log('Encargado Hualpén '+id+': '+(d.encNom||''));
 }
-
 function abrirAgregarEspDepHual(did){
-  S.mEspDid=did;
-  var depSel=document.getElementById('eDep');
-  if(depSel)depSel.value=did;
+  S.mEspDid=did;var depSel=document.getElementById('eDep');if(depSel)depSel.value=did;
   ['eCod','eNom','eBcu','eSerie','eObs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  var anioEl=document.getElementById('eAnio');if(anioEl)anioEl.value=new Date().getFullYear();
-  var cantEl=document.getElementById('eCant');if(cantEl)cantEl.value=1;
-  var estEl=document.getElementById('eEst');if(estEl)estEl.value='A';
-  var unEl=document.getElementById('eUnidad');if(unEl)unEl.value='hual';
-  S.eid=null;
-  document.getElementById('mEspT').textContent='Nueva especie en Hualpén';
-  oMdl('mEsp');
+  var a=document.getElementById('eAnio');if(a)a.value=new Date().getFullYear();
+  var c=document.getElementById('eCant');if(c)c.value=1;
+  var es=document.getElementById('eEst');if(es)es.value='A';
+  var un=document.getElementById('eUnidad');if(un)un.value='hual';
+  S.eid=null;document.getElementById('mEspT').textContent='Nueva especie en Hualpén';oMdl('mEsp');
 }
-
 function dlTodasPlanillasHual(){
   var depH=S.dep.filter(function(d){return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
-  if(!confirm('Se generarán '+depH.length+' documentos Word para Hualpén. ¿Continuar?'))return;
-  var delay=0;
-  depH.forEach(function(d){setTimeout(function(){dlPlanillaWord(d.id);},delay);delay+=380;});
+  if(!confirm('Se generarán '+depH.length+' documentos Word. \u00bfContinuar?'))return;
+  var delay=0;depH.forEach(function(d){setTimeout(function(){dlPlanillaWord(d.id);},delay);delay+=380;});
   log('Descarga masiva Hualpén: '+depH.length+' planillas');
 }
-
 
 function oAddHLoc(){document.getElementById('mHLocT').textContent='Nueva Ubicación';['hlNom','hlObs','hlCap','hlResp'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('hlFl').innerHTML='';document.getElementById('hlFid').value='';document.getElementById('hlSec').value='Piso 1';S._hlid=null;oMdl('mHLoc');}
 function editHLoc(id){var l=(S.hloc||[]).find(function(x){return x.id===id;});if(!l)return;S._hlid=id;document.getElementById('mHLocT').textContent='Editar Ubicación';document.getElementById('hlNom').value=l.nom;document.getElementById('hlObs').value=l.obs||'';document.getElementById('hlCap').value=l.cap||'';document.getElementById('hlSec').value=l.sec||'Piso 1';document.getElementById('hlFid').value=l.fid||'';var f=l.fid?S.fun.find(function(x){return x.id===l.fid;}):null;document.getElementById('hlResp').value=f?f.nom:'';document.getElementById('hlFl').innerHTML='';oMdl('mHLoc');}
@@ -1823,7 +1732,7 @@ function rHist(){
   h+='<div class="tWrap"><table>';
   h+='<tr><th><input type="checkbox" id="chkAll" onchange="chkAllHist(this.checked)"></th>';
   h+='<th>BCU</th><th>Nombre Especie</th><th>Marca/Modelo</th><th>Ubicación</th>';
-  h+='<th>Serie</th><th>F. Alta</th><th>Valor</th><th>Estado</th><th></th></tr>';
+  h+='<th>Serie</th><th>F. Alta</th><th>Valor</th><th>Estado</th><th style="color:#6ab87a">Funcionario</th><th></th></tr>';
 
   for(var j=0;j<slice.length;j++){
     var r=slice[j];
@@ -1844,6 +1753,8 @@ function rHist(){
     h+='<td style="font-family:monospace;font-size:.7rem;color:#6ab87a">'+esc(r.serie)+'</td>';
     h+='<td style="font-size:.75rem">'+esc(r.fecalta)+'</td>';
     h+='<td style="font-size:.72rem;color:#a8d5b5">'+esc(r.valor)+'</td>';
+    var hFun=r.fid?S.fun.find(function(f){return f.id===r.fid;}):null;
+    h+='<td style="font-size:.71rem">'+(hFun?'<span style="color:#6ab87a">\u2713 '+esc(hFun.nom.split(',')[0])+'</span>':'<span style="color:#6a8570">\u2014</span>')+'</td>';
     h+='<td>';
     if(r.dadobaja)h+='<span style="background:#4a1010;color:#ff6060;padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700">BAJA ORIG.</span>';
     else if(isBaj)h+='<span style="background:#3a2200;color:#d4aa30;padding:2px 8px;border-radius:4px;font-size:.68rem">→ Bajas</span>';
@@ -1854,7 +1765,8 @@ function rHist(){
     h+='<td style="white-space:nowrap;display:flex;gap:3px;padding:6px 8px">';
     h+='<button class="btn gn sm" onclick="traslOne('+r.id+')" title="→ Concepción" '+disabled+'>🏫</button>';
     h+='<button class="btn tl sm" onclick="traslOneHual('+r.id+')" title="→ Hualpén" '+disabled+'>🏠</button>';
-    h+='<button class="btn yw sm" onclick="bajasHistOne('+r.id+')" title="Enviar a Bajas" '+disabled+'>🗑️</button>';
+    h+='<button class="btn yw sm" onclick="bajasHistOne('+r.id+')" title="Enviar a Bajas" '+disabled+'>??️</button>';
+    h+='<button class="btn gn sm" onclick="oAsigFunHist('+r.id+')" title="Asignar funcionario" '+disabled+'>??</button>';
     h+='</td>';
     h+='</tr>';
   }
@@ -2146,9 +2058,9 @@ function rTec(){
       h+='<td style="font-size:.71rem;color:'+(descOk?'#c8e6cd':'#6a8570')+'" title="'+esc(descText)+'">'+esc(descShort||'— sin descripción')+'</td>';
       h+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
       var custTec=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;
-      var custLbl=custTec?'<span style="color:#6ab87a;font-size:.72rem">&#10003; '+esc(custTec.nom.split(',')[0])+'</span><br><button class="btn rd sm" onclick="quitarCustTec('+e.id+')" title="Quitar custodio" style="font-size:.65rem;margin-top:3px">&#10005; Quitar</button>':'<span style="color:#d4aa30;font-size:.71rem">&#8987; Sin custodio</span>';
+      var custLbl=custTec?'<span style="color:#6ab87a;font-size:.72rem">&#10003; '+esc(custTec.nom.split(',')[0])+'</span><br><button class="btn rd sm" onclick="quitarCustTec('+e.id+')" style="font-size:.65rem;margin-top:2px">&#10005; Quitar</button>':'<span style="color:#6a8570;font-size:.71rem">&#8212;</span>';
       h+='<td style="text-align:center;min-width:110px">'+custLbl+'</td>';
-      h+='<td style="white-space:nowrap"><button class="btn gn sm" onclick="oEditEsp('+e.id+')" title="Editar">&#9998; Editar</button> <button class="btn bl sm" onclick="oAsigCustTec('+e.id+')" title="Asignar custodio">&#128100; Custodio</button></td>';
+      h+='<td style="white-space:nowrap"><button class="btn bl sm" onclick="oEditEsp('+e.id+')" title="Editar">&#9998; Editar</button> <button class="btn gn sm" onclick="oAsigCustTec('+e.id+')" title="Asignar custodio">&#128100; Custodio</button></td>';
       h+='</tr>';
     }
   }
@@ -2182,89 +2094,74 @@ var MODULOS=[
 ];
 
 function oAsigCustTec(eid){
-  var e=S.esp.find(function(x){return x.id===eid;});
-  if(!e)return;
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
   var custActual=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;
-
-  var funOpts=S.fun.map(function(f){
-    var uBadge=f.unidad==='HUALPÉN'?'\ud83d\udea2':'\ud83c\udfeb';
-    return '<option value="'+f.id+'"'+(e.cid===f.id?' selected':'')+'>'+uBadge+' '+esc(f.nom)+' — '+esc(f.grado)+'</option>';
-  }).join('');
-
-  var h='<div class="ov" id="mCustTec" style="display:flex">';
-  h+='<div class="mdl">';
-  h+='<h3>\ud83d\udc64 Asignar Custodio</h3>';
-  h+='<div class="infoBanner" style="margin-bottom:14px">';
-  h+='<strong>'+esc(e.nom)+'</strong><br>';
-  h+='<span style="font-family:monospace;font-size:.8rem;color:#a8d5b5">'+esc(e.cod)+'</span>';
-  if(e.serie&&e.serie.trim())h+='<br><span style="font-size:.77rem;color:#70a4d4">Serie: '+esc(e.serie)+'</span>';
-  if(custActual)h+='<br><span style="font-size:.75rem;color:#d4aa30">Custodio actual: '+esc(custActual.nom)+'</span>';
-  h+='</div>';
-  h+='<div class="fg"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">Selecciona funcionario custodio</label>';
-  h+='<input type="text" id="custTecQ" placeholder="\ud83d\udd0d Buscar por nombre o grado..." oninput="filtrarFunCustTec()" style="width:100%;margin:8px 0 6px">';
-  h+='<select id="custTecSel" size="8" style="width:100%;background:#141e1a;border:1px solid #2a3a2e;color:#e8ede9;border-radius:6px;font-size:.8rem;padding:4px">';
-  h+='<option value="">— Sin custodio —</option>';
-  h+=funOpts;
-  h+='</select></div>';
+  var funOpts=S.fun.map(function(f){var ub=f.unidad==='HUALPÉN'?'\ud83d\udea2':'\ud83c\udfeb';return '<option value="'+f.id+'"'+(e.cid===f.id?' selected':'')+'>'+ub+' '+esc(f.nom)+' \u2014 '+esc(f.grado)+'</option>';}).join('');
+  var h='<div class="ov" id="mCustTec" style="display:flex"><div class="mdl"><h3>\ud83d\udc64 Asignar Custodio</h3>';
+  h+='<div class="infoBanner" style="margin-bottom:14px"><strong>'+esc(e.nom)+'</strong><br><span style="font-family:monospace;font-size:.8rem;color:#a8d5b5">'+esc(e.cod)+'</span>'+(e.serie&&e.serie.trim()?'<br><span style="color:#70a4d4;font-size:.77rem">Serie: '+esc(e.serie)+'</span>':'')+(custActual?'<br><span style="color:#d4aa30;font-size:.75rem">Custodio actual: '+esc(custActual.nom)+'</span>':'')+'</div>';
+  h+='<div class="fg"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">Selecciona funcionario custodio</label><input type="text" id="custTecQ" placeholder="\ud83d\udd0d Buscar..." oninput="filtrarFunCustTec()" style="width:100%;margin:8px 0 6px"><select id="custTecSel" size="8" style="width:100%;background:#141e1a;border:1px solid #2a3a2e;color:#e8ede9;border-radius:6px;font-size:.8rem;padding:4px"><option value="">\u2014 Sin custodio \u2014</option>'+funOpts+'</select></div>';
   h+='<div id="custTecFunOpts" style="display:none">'+funOpts+'</div>';
-  h+='<div class="mBtns">';
-  h+='<button class="btn rd" onclick="document.getElementById(\'mCustTec\').remove()">Cancelar</button>';
-  h+='<button class="btn gn" onclick="guardarCustTec('+eid+')">\u2705 Confirmar</button>';
-  h+='</div></div></div>';
+  h+='<div class="mBtns"><button class="btn rd" onclick="document.getElementById(\'mCustTec\').remove()">Cancelar</button><button class="btn gn" onclick="guardarCustTec('+eid+')">\u2705 Confirmar</button></div></div></div>';
   document.body.insertAdjacentHTML('beforeend',h);
   setTimeout(function(){var el=document.getElementById('custTecQ');if(el)el.focus();},80);
 }
-
 function filtrarFunCustTec(){
   var q=(document.getElementById('custTecQ').value||'').toLowerCase().trim();
-  var sel=document.getElementById('custTecSel');
-  var allOpts=document.getElementById('custTecFunOpts');
-  if(!sel||!allOpts)return;
-  if(!q){
-    sel.innerHTML='<option value="">— Sin custodio —</option>'+allOpts.innerHTML;
-    return;
-  }
-  var filtered=S.fun.filter(function(f){
-    return f.nom.toLowerCase().indexOf(q)>=0||f.grado.toLowerCase().indexOf(q)>=0;
-  });
-  var h='<option value="">— Sin custodio —</option>';
-  filtered.forEach(function(f){
-    var uBadge=f.unidad==='HUALPÉN'?'\ud83d\udea2':'\ud83c\udfeb';
-    h+='<option value="'+f.id+'">'+uBadge+' '+esc(f.nom)+' — '+esc(f.grado)+'</option>';
-  });
+  var sel=document.getElementById('custTecSel'),all=document.getElementById('custTecFunOpts');if(!sel||!all)return;
+  if(!q){sel.innerHTML='<option value="">\u2014 Sin custodio \u2014</option>'+all.innerHTML;return;}
+  var h='<option value="">\u2014 Sin custodio \u2014</option>';
+  S.fun.filter(function(f){return f.nom.toLowerCase().indexOf(q)>=0||f.grado.toLowerCase().indexOf(q)>=0;}).forEach(function(f){var ub=f.unidad==='HUALPÉN'?'\ud83d\udea2':'\ud83c\udfeb';h+='<option value="'+f.id+'">'+ub+' '+esc(f.nom)+' \u2014 '+esc(f.grado)+'</option>';});
   sel.innerHTML=h;
 }
-
 function guardarCustTec(eid){
-  var e=S.esp.find(function(x){return x.id===eid;});
-  if(!e)return;
-  var sel=document.getElementById('custTecSel');
-  if(!sel)return;
-  var fidStr=sel.value;
-  var fid=fidStr?parseInt(fidStr):null;
-  var fun=fid?S.fun.find(function(f){return f.id===fid;}):null;
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
+  var sel=document.getElementById('custTecSel');if(!sel)return;
+  var fid=sel.value?parseInt(sel.value):null,fun=fid?S.fun.find(function(f){return f.id===fid;}):null;
   if(fid&&!fun){alert('Funcionario no encontrado.');return;}
-  var prevFun=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;
-  if(prevFun&&fid&&prevFun.id===fid){document.getElementById('mCustTec').remove();return;}
   if(!confirm(fid?'\u00bfAsignar "'+e.nom+'" a cargo de '+fun.nom+'?':'\u00bfQuitar custodio de "'+e.nom+'"?'))return;
-  e.cid=fid;
-  sv();
-  log('Custodio TEC: '+e.cod+' \u2192 '+(fun?fun.nom:'Sin custodio'));
+  e.cid=fid;sv();log('Custodio: '+e.cod+' \u2192 '+(fun?fun.nom:'Sin custodio'));
   document.getElementById('mCustTec').remove();
-  rTec();
-  alert('\u2705 '+(fun?'"'+e.nom+'" asignado a '+fun.nom+' correctamente.':'"'+e.nom+'" sin custodio asignado.'));
+  if(S.view==='tec')rTec();else if(S.view==='hual')rHual();
+  alert('\u2705 '+(fun?'"'+e.nom+'" asignado a '+fun.nom+'.':'"'+e.nom+'" sin custodio.'));
 }
-
 function quitarCustTec(eid){
-  var e=S.esp.find(function(x){return x.id===eid;});
-  if(!e)return;
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
   var fun=e.cid?S.fun.find(function(f){return f.id===e.cid;}):null;
   if(!confirm('\u00bfQuitar custodio'+(fun?' ('+fun.nom+')':'')+' de "'+e.nom+'"?'))return;
-  e.cid=null;
-  sv();log('Custodio quitado: '+e.cod);
-  rTec();
+  e.cid=null;sv();log('Custodio quitado: '+e.cod);
+  if(S.view==='tec')rTec();else rHual();
 }
-
+function oAsigFunHist(rid){
+  var r=S.hist?S.hist.find(function(x){return x.id===rid;}):null;if(!r)return;
+  var funActual=r.fid?S.fun.find(function(f){return f.id===r.fid;}):null;
+  var funOpts=S.fun.map(function(f){var ub=f.unidad==='HUALPÉN'?'\ud83d\udea2':'\ud83c\udfeb';return '<option value="'+f.id+'"'+(r.fid===f.id?' selected':'')+'>'+ub+' '+esc(f.nom)+' \u2014 '+esc(f.grado)+'</option>';}).join('');
+  var h='<div class="ov" id="mFunHist" style="display:flex"><div class="mdl"><h3>\ud83d\udc64 Asignar Funcionario</h3>';
+  h+='<div class="infoBanner" style="margin-bottom:14px"><strong>'+esc(r.nom)+'</strong><br><span style="font-family:monospace;font-size:.8rem;color:#a8d5b5">BCU: '+esc(r.bcu)+'</span>'+(r.serie?'<br><span style="color:#70a4d4;font-size:.77rem">Serie: '+esc(r.serie)+'</span>':'')+(funActual?'<br><span style="color:#d4aa30;font-size:.75rem">Funcionario actual: '+esc(funActual.nom)+'</span>':'')+'</div>';
+  h+='<div class="fg"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">Selecciona funcionario</label><input type="text" id="funHistQ" placeholder="\ud83d\udd0d Buscar..." oninput="filtrarFunHist()" style="width:100%;margin:8px 0 6px"><select id="funHistSel" size="8" style="width:100%;background:#141e1a;border:1px solid #2a3a2e;color:#e8ede9;border-radius:6px;font-size:.8rem;padding:4px"><option value="">\u2014 Sin funcionario \u2014</option>'+funOpts+'</select></div>';
+  h+='<div id="funHistAllOpts" style="display:none">'+funOpts+'</div>';
+  h+='<div class="mBtns"><button class="btn rd" onclick="document.getElementById(\'mFunHist\').remove()">Cancelar</button><button class="btn gn" onclick="guardarFunHist('+rid+')">\u2705 Confirmar</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+  setTimeout(function(){var el=document.getElementById('funHistQ');if(el)el.focus();},80);
+}
+function filtrarFunHist(){
+  var q=(document.getElementById('funHistQ').value||'').toLowerCase().trim();
+  var sel=document.getElementById('funHistSel'),all=document.getElementById('funHistAllOpts');if(!sel||!all)return;
+  if(!q){sel.innerHTML='<option value="">\u2014 Sin funcionario \u2014</option>'+all.innerHTML;return;}
+  var h='<option value="">\u2014 Sin funcionario \u2014</option>';
+  S.fun.filter(function(f){return f.nom.toLowerCase().indexOf(q)>=0||f.grado.toLowerCase().indexOf(q)>=0;}).forEach(function(f){var ub=f.unidad==='HUALPÉN'?'\ud83d\udea2':'\ud83c\udfeb';h+='<option value="'+f.id+'">'+ub+' '+esc(f.nom)+' \u2014 '+esc(f.grado)+'</option>';});
+  sel.innerHTML=h;
+}
+function guardarFunHist(rid){
+  var r=S.hist?S.hist.find(function(x){return x.id===rid;}):null;if(!r)return;
+  var sel=document.getElementById('funHistSel');if(!sel)return;
+  var fid=sel.value?parseInt(sel.value):null,fun=fid?S.fun.find(function(f){return f.id===fid;}):null;
+  if(fid&&!fun){alert('Funcionario no encontrado.');return;}
+  if(!confirm(fid?'\u00bfAsignar "'+r.nom+'" al funcionario '+fun.nom+'?':'\u00bfQuitar funcionario de "'+r.nom+'"?'))return;
+  r.fid=fid;try{localStorage.setItem('e_hist',JSON.stringify(S.hist));}catch(e2){}
+  log('Fun. historial: '+r.bcu+' \u2192 '+(fun?fun.nom:'Sin funcionario'));
+  document.getElementById('mFunHist').remove();rHist();
+  alert('\u2705 '+(fun?'"'+r.nom+'" asignado a '+fun.nom+'.':'"'+r.nom+'" sin funcionario.'));
+}
 
 function getCfg(){return JSON.parse(localStorage.getItem('e_cfg')||'{}');}
 function saveCfg(cfg){localStorage.setItem('e_cfg',JSON.stringify(cfg));}
@@ -2885,195 +2782,94 @@ function importarFunMas(){
 var RM={dash:rDash,hist:rHist,esp:rEsp,dep:rDep,mov:rMov,cus:rCus,fun:rFun,baj:rBaj,rep:rRep,hual:rHual,esp2:rEsp2,tec:rTec,pbaj:rPbaj,bsf:rBsf,adm:rAdmin};
 
 function rEsp2(){
-  var PER=30;
-  var q=(S.esp2Q||'').toLowerCase();
-  var filtroUb=S.esp2Ub||'todo';
-  var filtroDepConc=S.esp2DepConc||'';
-  var filtroDepHual=S.esp2DepHual||'';
-
+  var PER=30,q=(S.esp2Q||'').toLowerCase(),filtroUb=S.esp2Ub||'todo',filtroDepConc=S.esp2DepConc||'',filtroDepHual=S.esp2DepHual||'';
   var todos=S.esp.filter(function(e){return e.isNuevo===true;});
   var nConc=todos.filter(function(e){return e.unidad!=='hual';}).length;
   var nHual=todos.filter(function(e){return e.unidad==='hual';}).length;
   var sinCust=todos.filter(function(e){return !e.cid;}).length;
-
   var fl=todos.filter(function(e){
-    var matchUb=(filtroUb==='todo')||(filtroUb==='conc'&&e.unidad!=='hual')||(filtroUb==='hual'&&e.unidad==='hual');
-    var matchQ=!q||(e.nom.toLowerCase().indexOf(q)>=0||e.cod.toLowerCase().indexOf(q)>=0||(e.serie&&e.serie.toLowerCase().indexOf(q)>=0)||(e.bcu&&e.bcu.toLowerCase().indexOf(q)>=0));
-    var matchD=true;
-    if(filtroUb==='conc'&&filtroDepConc) matchD=(e.did===parseInt(filtroDepConc));
-    if(filtroUb==='hual'&&filtroDepHual) matchD=(e.did===parseInt(filtroDepHual));
-    return matchUb&&matchQ&&matchD;
+    var mU=(filtroUb==='todo')||(filtroUb==='conc'&&e.unidad!=='hual')||(filtroUb==='hual'&&e.unidad==='hual');
+    var mQ=!q||(e.nom.toLowerCase().indexOf(q)>=0||e.cod.toLowerCase().indexOf(q)>=0||(e.serie&&e.serie.toLowerCase().indexOf(q)>=0)||(e.bcu&&e.bcu.toLowerCase().indexOf(q)>=0));
+    var mD=true;if(filtroUb==='conc'&&filtroDepConc)mD=(e.did===parseInt(filtroDepConc));if(filtroUb==='hual'&&filtroDepHual)mD=(e.did===parseInt(filtroDepHual));
+    return mU&&mQ&&mD;
   });
-
-  var pg=Math.max(1,Math.ceil(fl.length/PER));
-  if(S.pg>pg)S.pg=pg;
-  var sl=fl.slice((S.pg-1)*PER,S.pg*PER);
-
-  var tabStyle='padding:6px 16px;border-radius:6px;cursor:pointer;font-size:.8rem;border:1px solid #2a3a2e;margin-right:6px;';
-  var tabOn ='background:#1e3a28;color:#6ab87a;'+tabStyle;
-  var tabOff='background:#141414;color:#6a8570;'+tabStyle;
-
-  var h='<div class="sGrid">';
-  h+='<div class="sCd w"><div class="ico">\u23f3</div><div class="val">'+todos.length+'</div><div class="lbl">En Espera Total</div></div>';
+  var pg=Math.max(1,Math.ceil(fl.length/PER));if(S.pg>pg)S.pg=pg;var sl=fl.slice((S.pg-1)*PER,S.pg*PER);
+  var tS='padding:6px 16px;border-radius:6px;cursor:pointer;font-size:.8rem;border:1px solid #2a3a2e;margin-right:6px;';
+  var tOn='background:#1e3a28;color:#6ab87a;'+tS,tOff='background:#141414;color:#6a8570;'+tS;
+  var h='<div class="sGrid"><div class="sCd w"><div class="ico">\u23f3</div><div class="val">'+todos.length+'</div><div class="lbl">En Espera Total</div></div>';
   h+='<div class="sCd" style="background:rgba(106,184,122,.13)"><div class="ico">\ud83c\udfeb</div><div class="val">'+nConc+'</div><div class="lbl">Concepci\u00f3n</div></div>';
   h+='<div class="sCd" style="background:rgba(112,164,212,.13)"><div class="ico">\ud83d\udea2</div><div class="val">'+nHual+'</div><div class="lbl">Hualpén</div></div>';
-  h+='<div class="sCd" style="background:rgba(212,170,48,.13)"><div class="ico">\u23f3</div><div class="val">'+sinCust+'</div><div class="lbl">Sin Custodio</div></div>';
-  h+='</div>';
-
+  h+='<div class="sCd" style="background:rgba(212,170,48,.13)"><div class="ico">\u23f3</div><div class="val">'+sinCust+'</div><div class="lbl">Sin Custodio</div></div></div>';
   h+='<div style="margin:14px 0 10px">';
-  h+='<button style="'+(filtroUb==='todo'?tabOn:tabOff)+'" onclick="S.esp2Ub=\'todo\';S.esp2DepConc=\'\';S.esp2DepHual=\'\';S.pg=1;rEsp2()">\ud83d\udccb Todo ('+todos.length+')</button>';
-  h+='<button style="'+(filtroUb==='conc'?tabOn:tabOff)+'" onclick="S.esp2Ub=\'conc\';S.esp2DepConc=\'\';S.pg=1;rEsp2()">\ud83c\udfeb Concepci\u00f3n ('+nConc+')</button>';
-  h+='<button style="'+(filtroUb==='hual'?tabOn:tabOff)+'" onclick="S.esp2Ub=\'hual\';S.esp2DepHual=\'\';S.pg=1;rEsp2()">\ud83d\udea2 Hualpén ('+nHual+')</button>';
-  h+='</div>';
-
+  h+='<button style="'+(filtroUb==='todo'?tOn:tOff)+'" onclick="S.esp2Ub=\'todo\';S.esp2DepConc=\'\';S.esp2DepHual=\'\';S.pg=1;rEsp2()">\ud83d\udccb Todo ('+todos.length+')</button>';
+  h+='<button style="'+(filtroUb==='conc'?tOn:tOff)+'" onclick="S.esp2Ub=\'conc\';S.esp2DepConc=\'\';S.pg=1;rEsp2()">\ud83c\udfeb Concepci\u00f3n ('+nConc+')</button>';
+  h+='<button style="'+(filtroUb==='hual'?tOn:tOff)+'" onclick="S.esp2Ub=\'hual\';S.esp2DepHual=\'\';S.pg=1;rEsp2()">\ud83d\udea2 Hualpén ('+nHual+')</button></div>';
   if(filtroUb==='conc'||filtroUb==='hual'){
-    var depFiltradas=S.dep.filter(function(d){
-      if(filtroUb==='hual') return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);
-      return (d.unidad!=='hual')&&!(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);
-    });
-    var depSelVal=filtroUb==='conc'?filtroDepConc:filtroDepHual;
-    var depSetVar=filtroUb==='conc'?'S.esp2DepConc':'S.esp2DepHual';
-    h+='<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
-    h+='<label style="font-size:.8rem;color:#8fb89a;font-weight:600">'+(filtroUb==='conc'?'\ud83c\udfeb Dependencia Concepci\u00f3n:':'\ud83d\udea2 Dependencia Hualpén:')+'</label>';
-    h+='<select onchange="'+depSetVar+'=this.value;S.pg=1;rEsp2()" style="flex:1;min-width:200px;max-width:380px">';
-    h+='<option value="">\u2014 Todas las dependencias \u2014</option>';
-    depFiltradas.forEach(function(d){
-      h+='<option value="'+d.id+'"'+(depSelVal&&parseInt(depSelVal)===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';
-    });
+    var depFil=S.dep.filter(function(d){if(filtroUb==='hual')return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);return (d.unidad!=='hual')&&!(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
+    var dsv=filtroUb==='conc'?filtroDepConc:filtroDepHual,dvr=filtroUb==='conc'?'S.esp2DepConc':'S.esp2DepHual';
+    h+='<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">'+(filtroUb==='conc'?'\ud83c\udfeb Dep. Concepci\u00f3n:':'\ud83d\udea2 Dep. Hualpén:')+'</label>';
+    h+='<select onchange="'+dvr+'=this.value;S.pg=1;rEsp2()" style="flex:1;min-width:200px;max-width:380px"><option value="">\u2014 Todas \u2014</option>';
+    depFil.forEach(function(d){h+='<option value="'+d.id+'"'+(dsv&&parseInt(dsv)===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';});
     h+='</select>';
-    if(depSelVal){
-      h+='<button class="btn gn sm" onclick="asignarEsperaADep(\''+filtroUb+'\','+depSelVal+')">\u2705 Asignar seleccionados a esta dep.</button>';
-    }
+    if(dsv)h+='<button class="btn gn sm" onclick="asignarEsperaADep(\''+filtroUb+'\','+dsv+')">\u2705 Asignar seleccionados</button>';
     h+='</div>';
   }
-
-  h+='<div class="tWrap">';
-  h+='<div class="tHead" style="display:flex;justify-content:space-between;align-items:center">';
-  h+='<h3>\u23f3 Bienes en Espera \u2014 pendientes de asignaci\u00f3n</h3>';
-  h+='<span style="font-size:.76rem;color:#6a8570">'+fl.length+' de '+todos.length+'</span>';
-  h+='</div>';
+  h+='<div class="tWrap"><div class="tHead" style="display:flex;justify-content:space-between;align-items:center"><h3>\u23f3 Bienes en Espera</h3><span style="font-size:.76rem;color:#6a8570">'+fl.length+' de '+todos.length+'</span></div>';
   h+='<div class="esSrch"><input type="text" placeholder="\ud83d\udd0d C\u00f3digo, nombre, serie o BCU..." value="'+esc(S.esp2Q||'')+'" oninput="S.esp2Q=this.value;S.pg=1;rEsp2()"></div>';
-  h+='<table><tr>';
-  h+='<th><input type="checkbox" id="chkEsperaAll" onchange="chkTodosEspera(this.checked)"></th>';
-  h+='<th>C\u00f3digo</th><th>Nombre</th><th style="color:#70a4d4">N\u00b0 Serie</th><th>Unidad</th><th>Dependencia</th><th>Estado</th><th>Acciones</th>';
-  h+='</tr>';
-
+  h+='<table><tr><th><input type="checkbox" id="chkEsperaAll" onchange="chkTodosEspera(this.checked)"></th><th>C\u00f3digo</th><th>Nombre</th><th style="color:#70a4d4">N\u00b0 Serie</th><th>Unidad</th><th>Dependencia</th><th>Estado</th><th>Acciones</th></tr>';
   var rows='';
-  for(var j=0;j<sl.length;j++){
-    (function(e){
-      var dep=S.dep.find(function(d){return d.id===e.did;})||null;
-      var uEsHual=(e.unidad==='hual');
-      var uLbl=uEsHual?'<span style="color:#70a4d4;font-size:.72rem">\ud83d\udea2 Hualpén</span>':'<span style="color:#6ab87a;font-size:.72rem">\ud83c\udfeb Concepci\u00f3n</span>';
-      var depTxt=dep?esc(dep.nombre):'<span style="color:#d4aa30">\u23f3 Sin asignar</span>';
-      rows+='<tr>';
-      rows+='<td><input type="checkbox" class="chkEspera" data-id="'+e.id+'"></td>';
-      rows+='<td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(e.cod)+'</td>';
-      rows+='<td style="font-size:.79rem">'+esc(e.nom)+'</td>';
-      rows+='<td style="font-family:monospace;font-size:.71rem;color:#70a4d4">'+(e.serie&&e.serie.trim()&&e.serie.trim()!=='-'?esc(e.serie):'<span style="color:#4a6060">-</span>')+'</td>';
-      rows+='<td>'+uLbl+'</td>';
-      rows+='<td style="font-size:.75rem">'+depTxt+'</td>';
-      rows+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
-      rows+='<td style="white-space:nowrap">';
-      rows+='<button class="btn gn sm" onclick="oAsignarEspera('+e.id+')" title="Asignar unidad y dependencia">\ud83d\udccd Asignar</button> ';
-      rows+='<button class="btn bl sm" onclick="oEditEsp('+e.id+')" title="Editar">\u270f\ufe0f</button>';
-      rows+='</td></tr>';
-    })(sl[j]);
-  }
-
-  h+=(rows||'<tr><td colspan="8" class="empty">Sin registros para este filtro.</td></tr>');
+  for(var j=0;j<sl.length;j++){(function(e){
+    var dep=S.dep.find(function(d){return d.id===e.did;})||null;
+    var uH=(e.unidad==='hual');
+    var uLbl=uH?'<span style="color:#70a4d4;font-size:.72rem">\ud83d\udea2 Hualpén</span>':'<span style="color:#6ab87a;font-size:.72rem">\ud83c\udfeb Concepci\u00f3n</span>';
+    var depTxt=dep?esc(dep.nombre):'<span style="color:#d4aa30">\u23f3 Sin asignar</span>';
+    var ser=(e.serie&&e.serie.trim()&&e.serie!=='-')?'<span style="font-family:monospace;font-size:.71rem;color:#70a4d4">'+esc(e.serie)+'</span>':'<span style="color:#4a6060">\u2014</span>';
+    rows+='<tr><td><input type="checkbox" class="chkEspera" data-id="'+e.id+'"></td><td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(e.cod)+'</td><td style="font-size:.79rem">'+esc(e.nom)+'</td><td>'+ser+'</td><td>'+uLbl+'</td><td style="font-size:.75rem">'+depTxt+'</td><td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
+    rows+='<td style="white-space:nowrap"><button class="btn gn sm" onclick="oAsignarEspera('+e.id+')">\ud83d\udccd Asignar</button> <button class="btn bl sm" onclick="oEditEsp('+e.id+')">\u270f\ufe0f</button></td></tr>';
+  })(sl[j]);}
+  h+=(rows||'<tr><td colspan="8" class="empty">Sin registros.</td></tr>');
   h+='</table>';
   if(pg>1)h+='<div class="pgCtrl"><button onclick="S.pg=Math.max(1,S.pg-1);rEsp2()">\u25c4 Ant.</button><span>P\u00e1g. '+S.pg+' / '+pg+'</span><button onclick="S.pg=Math.min('+pg+',S.pg+1);rEsp2()">Sig. \u25ba</button></div>';
-  h+='</div>';
-  document.getElementById('cnt').innerHTML=h;
+  h+='</div>';document.getElementById('cnt').innerHTML=h;
 }
-
-function chkTodosEspera(v){
-  document.querySelectorAll('.chkEspera').forEach(function(c){c.checked=v;});
-}
-
+function chkTodosEspera(v){document.querySelectorAll('.chkEspera').forEach(function(c){c.checked=v;});}
 function oAsignarEspera(eid){
-  var e=S.esp.find(function(x){return x.id===eid;});
-  if(!e)return;
-  var depConc=S.dep.filter(function(d){return (d.unidad!=='hual')&&!(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
-  var depHual=S.dep.filter(function(d){return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
-  var optsConc=depConc.map(function(d){return '<option value="'+d.id+'"'+(e.did===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';}).join('');
-  var optsHual=depHual.map(function(d){return '<option value="'+d.id+'"'+(e.did===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';}).join('');
-  var unidadActual=e.unidad==='hual'?'hual':'conc';
-
-  var h='<div class="ov" id="mAsigEspera" style="display:flex">';
-  h+='<div class="mdl">';
-  h+='<h3>\ud83d\udccd Asignar Bien a Unidad y Dependencia</h3>';
-  h+='<div class="infoBanner" style="margin-bottom:14px"><strong>'+esc(e.nom)+'</strong><br><span style="font-family:monospace;font-size:.8rem;color:#a8d5b5">'+esc(e.cod)+'</span></div>';
-  h+='<div class="fg"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">1\ufe0f\u20e3 Selecciona la Unidad de destino</label>';
-  h+='<select id="asigEsperaUnidad" onchange="actualizarDepAsigEspera()" style="width:100%;margin-top:6px">';
-  h+='<option value="">\u2014 Selecciona unidad \u2014</option>';
-  h+='<option value="conc"'+(unidadActual==='conc'?' selected':'')+'>🏫 ESFOCAR Concepción</option>';
-  h+='<option value="hual"'+(unidadActual==='hual'?' selected':'')+'>🚢 Escuadrón Hualpén</option>';
-  h+='</select></div>';
-  h+='<div class="fg" style="margin-top:12px"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">2\ufe0f\u20e3 Selecciona la Dependencia</label>';
-  h+='<select id="asigEsperaDep" style="width:100%;margin-top:6px">';
-  h+='<option value="">\u2014 Selecciona dependencia \u2014</option>';
-  if(unidadActual==='conc') h+=optsConc; else h+=optsHual;
-  h+='</select></div>';
-  // Hidden data para el onchange dinámico
-  h+='<div id="asigEsperaDepConcOpts" style="display:none">'+optsConc+'</div>';
-  h+='<div id="asigEsperaDepHualOpts" style="display:none">'+optsHual+'</div>';
-  h+='<div class="mBtns">';
-  h+='<button class="btn rd" onclick="document.getElementById(\'mAsigEspera\').remove()">Cancelar</button>';
-  h+='<button class="btn gn" onclick="confirmarAsigEspera('+eid+')">\u2705 Confirmar y Asignar</button>';
-  h+='</div></div></div>';
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
+  var dC=S.dep.filter(function(d){return (d.unidad!=='hual')&&!(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
+  var dH=S.dep.filter(function(d){return (d.unidad==='hual')||(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')>=0);});
+  var oC=dC.map(function(d){return '<option value="'+d.id+'"'+(e.did===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';}).join('');
+  var oH=dH.map(function(d){return '<option value="'+d.id+'"'+(e.did===d.id?' selected':'')+'>'+esc(d.nombre)+'</option>';}).join('');
+  var ua=e.unidad==='hual'?'hual':'conc';
+  var h='<div class="ov" id="mAsigEspera" style="display:flex"><div class="mdl"><h3>\ud83d\udccd Asignar Bien</h3>';
+  h+='<div class="infoBanner" style="margin-bottom:14px"><strong>'+esc(e.nom)+'</strong><br><span style="font-family:monospace;font-size:.8rem;color:#a8d5b5">'+esc(e.cod)+'</span>'+(e.serie&&e.serie.trim()?'<br><span style="color:#70a4d4;font-size:.77rem">Serie: '+esc(e.serie)+'</span>':'')+'</div>';
+  h+='<div class="fg"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">1\ufe0f\u20e3 Unidad de destino</label><select id="asigEsperaUnidad" onchange="actualizarDepAsigEspera()" style="width:100%;margin-top:6px"><option value="">\u2014 Selecciona unidad \u2014</option><option value="conc"'+(ua==='conc'?' selected':'')+'>\ud83c\udfeb ESFOCAR Concepci\u00f3n</option><option value="hual"'+(ua==='hual'?' selected':'')+'>\ud83d\udea2 Escuadr\u00f3n Hualpén</option></select></div>';
+  h+='<div class="fg" style="margin-top:12px"><label style="font-size:.8rem;color:#8fb89a;font-weight:600">2\ufe0f\u20e3 Dependencia</label><select id="asigEsperaDep" style="width:100%;margin-top:6px"><option value="">\u2014 Selecciona \u2014</option>'+(ua==='conc'?oC:oH)+'</select></div>';
+  h+='<div id="asigEsperaDepConcOpts" style="display:none">'+oC+'</div><div id="asigEsperaDepHualOpts" style="display:none">'+oH+'</div>';
+  h+='<div class="mBtns"><button class="btn rd" onclick="document.getElementById(\'mAsigEspera\').remove()">Cancelar</button><button class="btn gn" onclick="confirmarAsigEspera('+eid+')">\u2705 Confirmar</button></div></div></div>';
   document.body.insertAdjacentHTML('beforeend',h);
 }
-
 function actualizarDepAsigEspera(){
-  var unidad=document.getElementById('asigEsperaUnidad').value;
-  var sel=document.getElementById('asigEsperaDep');
-  if(!sel)return;
-  var optsConc=document.getElementById('asigEsperaDepConcOpts');
-  var optsHual=document.getElementById('asigEsperaDepHualOpts');
-  sel.innerHTML='<option value="">\u2014 Selecciona dependencia \u2014</option>';
-  if(unidad==='conc'&&optsConc) sel.innerHTML+=optsConc.innerHTML;
-  if(unidad==='hual'&&optsHual) sel.innerHTML+=optsHual.innerHTML;
+  var u=document.getElementById('asigEsperaUnidad').value,sel=document.getElementById('asigEsperaDep');if(!sel)return;
+  sel.innerHTML='<option value="">\u2014 Selecciona \u2014</option>';
+  var src=document.getElementById(u==='conc'?'asigEsperaDepConcOpts':'asigEsperaDepHualOpts');if(src)sel.innerHTML+=src.innerHTML;
 }
-
 function confirmarAsigEspera(eid){
-  var e=S.esp.find(function(x){return x.id===eid;});
-  if(!e)return;
-  var unidad=document.getElementById('asigEsperaUnidad').value;
-  var didStr=document.getElementById('asigEsperaDep').value;
-  if(!unidad){alert('Selecciona la unidad de destino.');return;}
-  if(!didStr){alert('Selecciona la dependencia.');return;}
-  var did=parseInt(didStr);
-  var dep=S.dep.find(function(d){return d.id===did;});
-  if(!dep){alert('Dependencia no encontrada.');return;}
-  if(!confirm('¿Asignar "'+e.nom+'" a '+dep.nombre+' ('+(unidad==='hual'?'Hualpén':'Concepción')+')?'))return;
-  e.unidad=unidad;
-  e.did=did;
-  e.isNuevo=false;
-  sv();
-  log('Asignado '+e.cod+' \u2192 '+dep.nombre+' ('+unidad+')');
-  document.getElementById('mAsigEspera').remove();
-  rEsp2();
-  alert('\u2705 "'+e.nom+'" asignado a '+dep.nombre+' correctamente.\nYa no aparece en En Espera.');
+  var e=S.esp.find(function(x){return x.id===eid;});if(!e)return;
+  var u=document.getElementById('asigEsperaUnidad').value,ds=document.getElementById('asigEsperaDep').value;
+  if(!u){alert('Selecciona la unidad.');return;}if(!ds){alert('Selecciona la dependencia.');return;}
+  var did=parseInt(ds),dep=S.dep.find(function(d){return d.id===did;});if(!dep){alert('Dependencia no encontrada.');return;}
+  if(!confirm('\u00bfAsignar "'+e.nom+'" a '+dep.nombre+' ('+(u==='hual'?'Hualpén':'Concepci\u00f3n')+')?'))return;
+  e.unidad=u;e.did=did;e.isNuevo=false;sv();log('Asignado '+e.cod+' \u2192 '+dep.nombre);
+  document.getElementById('mAsigEspera').remove();rEsp2();
+  alert('\u2705 "'+e.nom+'" asignado a '+dep.nombre+'.');
 }
-
 function asignarEsperaADep(unidad,did){
-  var chks=document.querySelectorAll('.chkEspera:checked');
-  if(!chks.length){alert('Selecciona al menos un bien con el checkbox.');return;}
-  var dep=S.dep.find(function(d){return d.id===did;});
-  if(!dep)return;
-  if(!confirm('¿Asignar '+chks.length+' bien(es) a "'+dep.nombre+'"?'))return;
-  var cnt=0;
-  chks.forEach(function(c){
-    var id=parseInt(c.getAttribute('data-id'));
-    var e=S.esp.find(function(x){return x.id===id;});
-    if(e){e.unidad=unidad;e.did=did;e.isNuevo=false;cnt++;}
-  });
-  sv();log('Asignaci\u00f3n masiva: '+cnt+' bienes \u2192 '+dep.nombre);
-  rEsp2();
-  alert('\u2705 '+cnt+' bien(es) asignados a "'+dep.nombre+'" correctamente.');
+  var chks=document.querySelectorAll('.chkEspera:checked');if(!chks.length){alert('Selecciona al menos un bien.');return;}
+  var dep=S.dep.find(function(d){return d.id===did;});if(!dep)return;
+  if(!confirm('\u00bfAsignar '+chks.length+' bien(es) a "'+dep.nombre+'"?'))return;
+  var cnt=0;chks.forEach(function(c){var id=parseInt(c.getAttribute('data-id'));var e=S.esp.find(function(x){return x.id===id;});if(e){e.unidad=unidad;e.did=did;e.isNuevo=false;cnt++;}});
+  sv();log('Masiva: '+cnt+' \u2192 '+dep.nombre);rEsp2();alert('\u2705 '+cnt+' bien(es) asignados a "'+dep.nombre+'".');
 }
-
 
 function oPreEsp(eid){
   var e=S.esp.find(function(x){return x.id===eid;});
