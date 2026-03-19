@@ -2960,7 +2960,7 @@ function rEsp2(){
 
   var fl=todos.filter(function(e){
     var matchUb=(filtroUb==='todo')||(filtroUb==='conc'&&e.unidad!=='hual')||(filtroUb==='hual'&&e.unidad==='hual');
-    var matchQ=!q||(e.nom.toLowerCase().indexOf(q)>=0||e.cod.toLowerCase().indexOf(q)>=0);
+    var matchQ=!q||(e.nom.toLowerCase().indexOf(q)>=0||e.cod.toLowerCase().indexOf(q)>=0||(e.serie&&e.serie.toLowerCase().indexOf(q)>=0)||(e.bcu&&e.bcu.toLowerCase().indexOf(q)>=0));
     var matchD=true;
     if(filtroUb==='conc'&&filtroDepConc) matchD=(e.did===parseInt(filtroDepConc));
     if(filtroUb==='hual'&&filtroDepHual) matchD=(e.did===parseInt(filtroDepHual));
@@ -3014,10 +3014,10 @@ function rEsp2(){
   h+='<h3>\u23f3 Bienes en Espera \u2014 pendientes de asignaci\u00f3n</h3>';
   h+='<span style="font-size:.76rem;color:#6a8570">'+fl.length+' de '+todos.length+'</span>';
   h+='</div>';
-  h+='<div class="esSrch"><input type="text" placeholder="\ud83d\udd0d C\u00f3digo o nombre..." value="'+esc(S.esp2Q||'')+'" oninput="S.esp2Q=this.value;S.pg=1;rEsp2()"></div>';
+  h+='<div class="esSrch"><input type="text" placeholder="\ud83d\udd0d C\u00f3digo, nombre, serie o BCU..." value="'+esc(S.esp2Q||'')+'" oninput="S.esp2Q=this.value;S.pg=1;rEsp2()"></div>';
   h+='<table><tr>';
   h+='<th><input type="checkbox" id="chkEsperaAll" onchange="chkTodosEspera(this.checked)"></th>';
-  h+='<th>C\u00f3digo</th><th>Nombre</th><th>Unidad</th><th>Dependencia</th><th>Estado</th><th>Acciones</th>';
+  h+='<th>C\u00f3digo</th><th>Nombre</th><th style="color:#70a4d4">N\u00b0 Serie</th><th>Unidad</th><th>Dependencia</th><th>Estado</th><th>Acciones</th>';
   h+='</tr>';
 
   var rows='';
@@ -3031,6 +3031,7 @@ function rEsp2(){
       rows+='<td><input type="checkbox" class="chkEspera" data-id="'+e.id+'"></td>';
       rows+='<td style="font-family:monospace;font-size:.73rem;color:#a8d5b5">'+esc(e.cod)+'</td>';
       rows+='<td style="font-size:.79rem">'+esc(e.nom)+'</td>';
+      rows+='<td style="font-family:monospace;font-size:.71rem;color:#70a4d4">'+(e.serie&&e.serie.trim()&&e.serie.trim()!=='-'?esc(e.serie):'<span style="color:#4a6060">-</span>')+'</td>';
       rows+='<td>'+uLbl+'</td>';
       rows+='<td style="font-size:.75rem">'+depTxt+'</td>';
       rows+='<td><span class="bA '+stCls(e.est)+'">'+stLbl(e.est)+'</span></td>';
@@ -3041,7 +3042,7 @@ function rEsp2(){
     })(sl[j]);
   }
 
-  h+=(rows||'<tr><td colspan="7" class="empty">Sin registros para este filtro.</td></tr>');
+  h+=(rows||'<tr><td colspan="8" class="empty">Sin registros para este filtro.</td></tr>');
   h+='</table>';
   if(pg>1)h+='<div class="pgCtrl"><button onclick="S.pg=Math.max(1,S.pg-1);rEsp2()">\u25c4 Ant.</button><span>P\u00e1g. '+S.pg+' / '+pg+'</span><button onclick="S.pg=Math.min('+pg+',S.pg+1);rEsp2()">Sig. \u25ba</button></div>';
   h+='</div>';
