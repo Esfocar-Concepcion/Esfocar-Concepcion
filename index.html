@@ -2951,37 +2951,28 @@ function qEspPbaj(q){
   prev.style.display='none';
   if(!q||q.length<2){lst.innerHTML='';return;}
 
-  // BCUs ya dados de baja BAJO RESOLUCIÓN OFICIAL (nres definido y no vacío)
+  // BCUs ya dados de baja BAJO RESOLUCIÓN OFICIAL
+  // IMPORTANTE: excluir BCUs vacíos del Set para no bloquear especies sin BCU
   var bcusBajaRes=new Set(
     (S.baj||[])
-      .filter(function(b){return b.nres&&String(b.nres).trim()!=='';})
-      .map(function(b){return b.bcu?b.bcu.toUpperCase():'';})
+      .filter(function(b){return b.nres&&String(b.nres).trim()!==''&&b.bcu&&String(b.bcu).trim()!=='';})
+      .map(function(b){return b.bcu.trim().toUpperCase();})
   );
+
+  // IDs de S.hist (bajas históricas pre-cargadas) — estos NO se proponen, ya están de baja
+  var idsHistBaja=new Set((S.hist||[]).map(function(h){return h.id;}));
 
   var ql=q.toLowerCase();
 
-  // Pool 1: Registro Histórico (S.hist) — excluye los que tienen resolución de baja
-  var poolHist=(S.hist||[]).filter(function(e){
-    return !bcusBajaRes.has((e.bcu||'').toUpperCase())
-      &&((e.bcu||'').toLowerCase().indexOf(ql)>=0||(e.nom||'').toLowerCase().indexOf(ql)>=0);
-  });
-
-  // Pool 2: Cargo activo — excluye est==='B' y los que tienen resolución de baja
-  var poolCargo=(S.esp||[]).filter(function(e){
-    return e.est!=='B'
-      &&!bcusBajaRes.has((e.bcu||'').toUpperCase())
-      &&((e.cod||'').toLowerCase().indexOf(ql)>=0||(e.nom||'').toLowerCase().indexOf(ql)>=0);
-  });
-
-  // Unir sin duplicar por BCU
-  var seen=new Set();
-  var pool=[];
-  poolHist.concat(poolCargo).forEach(function(e){
-    var key=e.bcu?e.bcu.toUpperCase():('ID_'+e.id);
-    if(!seen.has(key)){seen.add(key);pool.push(e);}
-  });
-
-  var r=pool.slice(0,15);
+  // Buscar SOLO en S.esp (cargo activo), excluyendo:
+  // 1. est==='B' (ya marcadas de baja en el cargo)
+  // 2. BCU que tenga resolución oficial en S.baj
+  var r=(S.esp||[]).filter(function(e){
+    if(e.est==='B') return false;
+    if(e.bcu&&e.bcu.trim()!==''&&bcusBajaRes.has(e.bcu.trim().toUpperCase())) return false;
+    return (e.cod||'').toLowerCase().indexOf(ql)>=0
+        || (e.nom||'').toLowerCase().indexOf(ql)>=0;
+  }).slice(0,15);
 
   if(!r.length){lst.innerHTML='<div class="qi" style="color:#6a8570">Sin resultados</div>';return;}
 
@@ -2990,21 +2981,18 @@ function qEspPbaj(q){
     var e=r[i];
     var dep=S.dep.find(function(d){return d.id===e.did;})||{nombre:''};
     var yaPbaj=S.pbaj&&S.pbaj.find(function(p){return p.eid===e.id;});
-    var esHist=!!(S.hist||[]).find(function(x){return x.id===e.id;});
-    var origenTag=esHist
-      ?'<span style="color:#8ab8d5;font-size:.65rem;margin-left:4px">[Hist.]</span>'
-      :'<span style="color:#6ab87a;font-size:.65rem;margin-left:4px">[Cargo]</span>';
-    h+='<div class="qi" onclick="selEspPbaj('+e.id+')" style="'+(yaPbaj?'color:#d4aa30':'')+'"><b>'+esc(e.cod||e.bcu||'')+'</b> — '+esc(e.nom||'')+origenTag+(yaPbaj?'<br><span style="color:#6a8570;font-size:.7rem">⚠ Ya propuesto</span>':'')+'<br><span style="color:#6a8570;font-size:.7rem">'+esc(dep.nombre)+'</span></div>';
+    h+='<div class="qi" onclick="selEspPbaj('+e.id+')" style="'+(yaPbaj?'color:#d4aa30':'')+'">'
+      +'<b>'+esc(e.cod||e.bcu||'')+'</b> — '+esc(e.nom||'')
+      +(yaPbaj?'<br><span style="color:#d4aa30;font-size:.7rem">⚠ Ya propuesto</span>':'')
+      +'<br><span style="color:#6a8570;font-size:.7rem">'+esc(dep.nombre)+'</span>'
+      +'</div>';
   }
   lst.innerHTML=h;
 }
 
 function selEspPbaj(id){
-  // Buscar primero en Registro Histórico, luego en cargo activo
-  var e=(S.hist||[]).find(function(x){return x.id===id;})
-      ||(S.esp||[]).find(function(x){return x.id===id;});
+  var e=(S.esp||[]).find(function(x){return x.id===id;});
   if(!e)return;
-  var esHist=!!(S.hist||[]).find(function(x){return x.id===id;});
   document.getElementById('pbajEid').value=id;
   document.getElementById('pbajCodQ').value=(e.cod||e.bcu||'')+' — '+(e.nom||'');
   document.getElementById('pbajSug').innerHTML='';
@@ -3012,7 +3000,6 @@ function selEspPbaj(id){
   var prev=document.getElementById('pbajPreview');
   prev.style.display='block';
   prev.innerHTML='<b>'+esc(e.cod||e.bcu||'')+'</b> — '+esc(e.nom||'')
-    +(esHist?' <span style="color:#8ab8d5;font-size:.75rem">[Registro Histórico]</span>':'')
     +'<br>Dependencia: '+esc(dep.nombre)
     +(e.bcu?' | BCU: <span style="font-family:monospace">'+esc(e.bcu)+'</span>':'')
     +(e.anio?' | Año: '+esc(e.anio):'')
@@ -3060,8 +3047,7 @@ function savePbaj(){
   var obs=document.getElementById('pbajObs').value.trim();
   var fec=document.getElementById('pbajFec').value;
   var anio=document.getElementById('pbajAnio').value;
-  var e=(S.hist||[]).find(function(x){return x.id===eid;})
-      ||(S.esp||[]).find(function(x){return x.id===eid;});
+  var e=(S.esp||[]).find(function(x){return x.id===eid;});
   if(!S.pbaj)S.pbaj=[];
   if(S.pbajEdit!=null){
     var p=S.pbaj.find(function(x){return x.id===S.pbajEdit;});
