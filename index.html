@@ -2950,31 +2950,76 @@ function qEspPbaj(q){
   document.getElementById('pbajEid').value='';
   prev.style.display='none';
   if(!q||q.length<2){lst.innerHTML='';return;}
-  var r=S.esp.filter(function(e){
-    return e.est!=='B'&&(e.cod.toLowerCase().indexOf(q.toLowerCase())>=0||e.nom.toLowerCase().indexOf(q.toLowerCase())>=0);
-  }).slice(0,12);
+
+  // BCUs ya dados de baja BAJO RESOLUCIÓN OFICIAL (nres definido y no vacío)
+  var bcusBajaRes=new Set(
+    (S.baj||[])
+      .filter(function(b){return b.nres&&String(b.nres).trim()!=='';})
+      .map(function(b){return b.bcu?b.bcu.toUpperCase():'';})
+  );
+
+  var ql=q.toLowerCase();
+
+  // Pool 1: Registro Histórico (S.hist) — excluye los que tienen resolución de baja
+  var poolHist=(S.hist||[]).filter(function(e){
+    return !bcusBajaRes.has((e.bcu||'').toUpperCase())
+      &&((e.bcu||'').toLowerCase().indexOf(ql)>=0||(e.nom||'').toLowerCase().indexOf(ql)>=0);
+  });
+
+  // Pool 2: Cargo activo — excluye est==='B' y los que tienen resolución de baja
+  var poolCargo=(S.esp||[]).filter(function(e){
+    return e.est!=='B'
+      &&!bcusBajaRes.has((e.bcu||'').toUpperCase())
+      &&((e.cod||'').toLowerCase().indexOf(ql)>=0||(e.nom||'').toLowerCase().indexOf(ql)>=0);
+  });
+
+  // Unir sin duplicar por BCU
+  var seen=new Set();
+  var pool=[];
+  poolHist.concat(poolCargo).forEach(function(e){
+    var key=e.bcu?e.bcu.toUpperCase():('ID_'+e.id);
+    if(!seen.has(key)){seen.add(key);pool.push(e);}
+  });
+
+  var r=pool.slice(0,15);
+
   if(!r.length){lst.innerHTML='<div class="qi" style="color:#6a8570">Sin resultados</div>';return;}
+
   var h='';
   for(var i=0;i<r.length;i++){
     var e=r[i];
     var dep=S.dep.find(function(d){return d.id===e.did;})||{nombre:''};
     var yaPbaj=S.pbaj&&S.pbaj.find(function(p){return p.eid===e.id;});
-    h+='<div class="qi" onclick="selEspPbaj('+e.id+')" style="'+(yaPbaj?'color:#d4aa30':'')+'"><b>'+esc(e.cod)+'</b> — '+esc(e.nom)+(yaPbaj?' ⚠ Ya propuesto':'')+'<br><span style="color:#6a8570;font-size:.7rem">'+esc(dep.nombre)+'</span></div>';
+    var esHist=!!(S.hist||[]).find(function(x){return x.id===e.id;});
+    var origenTag=esHist
+      ?'<span style="color:#8ab8d5;font-size:.65rem;margin-left:4px">[Hist.]</span>'
+      :'<span style="color:#6ab87a;font-size:.65rem;margin-left:4px">[Cargo]</span>';
+    h+='<div class="qi" onclick="selEspPbaj('+e.id+')" style="'+(yaPbaj?'color:#d4aa30':'')+'"><b>'+esc(e.cod||e.bcu||'')+'</b> — '+esc(e.nom||'')+origenTag+(yaPbaj?'<br><span style="color:#6a8570;font-size:.7rem">⚠ Ya propuesto</span>':'')+'<br><span style="color:#6a8570;font-size:.7rem">'+esc(dep.nombre)+'</span></div>';
   }
   lst.innerHTML=h;
 }
+
 function selEspPbaj(id){
-  var e=S.esp.find(function(x){return x.id===id;});
+  // Buscar primero en Registro Histórico, luego en cargo activo
+  var e=(S.hist||[]).find(function(x){return x.id===id;})
+      ||(S.esp||[]).find(function(x){return x.id===id;});
   if(!e)return;
+  var esHist=!!(S.hist||[]).find(function(x){return x.id===id;});
   document.getElementById('pbajEid').value=id;
-  document.getElementById('pbajCodQ').value=e.cod+' — '+e.nom;
+  document.getElementById('pbajCodQ').value=(e.cod||e.bcu||'')+' — '+(e.nom||'');
   document.getElementById('pbajSug').innerHTML='';
   var dep=S.dep.find(function(d){return d.id===e.did;})||{nombre:'—'};
   var prev=document.getElementById('pbajPreview');
   prev.style.display='block';
-  prev.innerHTML='<b>'+esc(e.cod)+'</b> — '+esc(e.nom)+'<br>Dependencia: '+esc(dep.nombre)+(e.bcu?' | BCU: '+esc(e.bcu):'')+(e.anio?' | Año: '+esc(e.anio):'');
+  prev.innerHTML='<b>'+esc(e.cod||e.bcu||'')+'</b> — '+esc(e.nom||'')
+    +(esHist?' <span style="color:#8ab8d5;font-size:.75rem">[Registro Histórico]</span>':'')
+    +'<br>Dependencia: '+esc(dep.nombre)
+    +(e.bcu?' | BCU: <span style="font-family:monospace">'+esc(e.bcu)+'</span>':'')
+    +(e.anio?' | Año: '+esc(e.anio):'')
+    +(e.marca?' | Marca: '+esc(e.marca):'');
   if(e.anio)document.getElementById('pbajAnio').value=e.anio;
 }
+
 function oAddPbaj(){
   S.pbajEdit=null;
   document.getElementById('mPbajT').textContent='📋 Nueva Propuesta de Baja';
@@ -2987,14 +3032,16 @@ function oAddPbaj(){
   document.getElementById('pbajFec').value=new Date().toISOString().slice(0,10);
   oMdl('mPbaj');
 }
+
 function oEditPbaj(id){
   var p=S.pbaj.find(function(x){return x.id===id;});
   if(!p)return;
   S.pbajEdit=id;
   document.getElementById('mPbajT').textContent='✏️ Editar Propuesta';
-  var e=S.esp.find(function(x){return x.id===p.eid;});
+  var e=(S.hist||[]).find(function(x){return x.id===p.eid;})
+      ||(S.esp||[]).find(function(x){return x.id===p.eid;});
   document.getElementById('pbajEid').value=p.eid;
-  document.getElementById('pbajCodQ').value=e?(e.cod+' — '+e.nom):'ID '+p.eid;
+  document.getElementById('pbajCodQ').value=e?((e.cod||e.bcu||'')+' — '+(e.nom||'')):'ID '+p.eid;
   if(e){selEspPbaj(p.eid);}
   document.getElementById('pbajMot').value=p.mot||'';
   document.getElementById('pbajNres').value=p.nres||'';
@@ -3003,6 +3050,7 @@ function oEditPbaj(id){
   document.getElementById('pbajAnio').value=p.anio||'';
   oMdl('mPbaj');
 }
+
 function savePbaj(){
   var eid=parseInt(document.getElementById('pbajEid').value);
   if(!eid){alert('Debe seleccionar un bien del listado.');return;}
@@ -3012,21 +3060,22 @@ function savePbaj(){
   var obs=document.getElementById('pbajObs').value.trim();
   var fec=document.getElementById('pbajFec').value;
   var anio=document.getElementById('pbajAnio').value;
-  var e=S.esp.find(function(x){return x.id===eid;});
+  var e=(S.hist||[]).find(function(x){return x.id===eid;})
+      ||(S.esp||[]).find(function(x){return x.id===eid;});
   if(!S.pbaj)S.pbaj=[];
   if(S.pbajEdit!=null){
     var p=S.pbaj.find(function(x){return x.id===S.pbajEdit;});
     if(p){p.eid=eid;p.mot=mot;p.nres=nres;p.obs=obs;p.fec=fec;p.anio=anio;}
-    log('Editó propuesta baja: '+(e?e.cod:'ID'+eid));
+    log('Editó propuesta baja: '+(e?(e.cod||e.bcu||''):'ID'+eid));
   }else{
-    // Advertir si ya existe propuesta para ese bien
     var dup=S.pbaj.find(function(x){return x.eid===eid;});
     if(dup&&!confirm('⚠️ Este bien ya tiene una propuesta de baja registrada.\n¿Desea agregar otra igualmente?'))return;
-    S.pbaj.push({id:nid(S.pbaj),eid:eid,cod:e?e.cod:'',nom:e?e.nom:'',mot:mot,nres:nres,obs:obs,fec:fec,anio:anio,ts:new Date().toLocaleString('es-CL'),user:S.user});
-    log('Propuesta de baja: '+(e?e.cod:'ID'+eid));
+    S.pbaj.push({id:nid(S.pbaj),eid:eid,cod:e?(e.cod||e.bcu||''):'',nom:e?(e.nom||''):'',mot:mot,nres:nres,obs:obs,fec:fec,anio:anio,ts:new Date().toLocaleString('es-CL'),user:S.user});
+    log('Propuesta de baja: '+(e?(e.cod||e.bcu||''):'ID'+eid));
   }
   sv();cMdl('mPbaj');rPbaj();
 }
+
 function delPbaj(id){
   var p=S.pbaj.find(function(x){return x.id===id;});
   if(!p||!confirm('¿Eliminar propuesta de baja para "'+p.nom+'"?'))return;
