@@ -1854,7 +1854,7 @@ function traslHist(){
     +'<option value="">— Selecciona dependencia —</option>'+opts
     +'</select></div>'
     +'<div class="mBtns">'
-    +'<button class="btn rd" onclick="document.getElementById('mTraslConcMas').remove()">Cancelar</button>'
+    +'<button class="btn rd" onclick="document.getElementById(\'mTraslConcMas\').remove()">Cancelar</button>'
     +'<button class="btn gn" onclick="confirmarTraslHistMas()">&#9989; Confirmar</button>'
     +'</div></div></div>';
   window._traslHistIds=ids;
@@ -1946,7 +1946,7 @@ function oTraslToConcModal(r){
     +'<option value="">— Selecciona dependencia —</option>'+opts
     +'</select></div>'
     +'<div class="mBtns">'
-    +'<button class="btn rd" onclick="document.getElementById('mTraslConc').remove()">Cancelar</button>'
+    +'<button class="btn rd" onclick="document.getElementById(\'mTraslConc\').remove()">Cancelar</button>'
     +'<button class="btn gn" onclick="confirmarTraslToConc('+r.id+')">&#9989; Confirmar</button>'
     +'</div></div></div>';
   document.body.insertAdjacentHTML('beforeend',h);
@@ -1961,7 +1961,7 @@ function confirmarTraslToConc(rid){
   var did=parseInt(ds);
   var dep=S.dep.find(function(d){return d.id===did;});
   if(!dep){alert('Dependencia no encontrada.');return;}
-  if(!confirm('¿Trasladar "'+r.nom+'" a\n'+dep.nombre+'?'))return;
+  if(!confirm('¿Trasladar "'+r.nom+'" a '+dep.nombre+'?'))return;
   _traslToConc(r,did);
   document.getElementById('mTraslConc').remove();
   sv();rHist();
