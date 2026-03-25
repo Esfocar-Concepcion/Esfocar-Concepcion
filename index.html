@@ -1813,9 +1813,7 @@ function chkAllHist(v){
 function traslOne(id){
   var r=(S.hist||[]).find(function(x){return x.id===id;});
   if(!r)return;
-  if(!confirm('Trasladar '+r.nom+' (BCU: '+r.bcu+') al inventario de CONCEPCIÓN?'))return;
-  _traslToConc(r);
-  sv();rHist();
+  oTraslToConcModal(r);
 }
 
 function traslOneHual(id){
@@ -1838,14 +1836,46 @@ function bajasHistOne(id){
 function traslHist(){
   var chks=document.querySelectorAll('.hChk:checked');
   if(!chks.length){alert('Selecciona al menos un registro.');return;}
-  if(!confirm('Trasladar '+chks.length+' especies al inventario de CONCEPCIÓN?'))return;
-  var cnt=0;
-  chks.forEach(function(c){
-    var id=parseInt(c.getAttribute('data-id'));
-    var r=(S.hist||[]).find(function(x){return x.id===id;});
-    if(r&&!r.trasl&&!r.traslHual&&!r.bajahist){_traslToConc(r);cnt++;}
+  var dC=S.dep.filter(function(d){
+    return d.unidad!=='hual'&&!(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')===0);
   });
-  alert(cnt+' especies trasladadas a Concepción.');
+  var opts=dC.map(function(d){
+    return '<option value="'+d.id+'">'+esc(d.nombre)+'</option>';
+  }).join('');
+  var ids=Array.from(chks).map(function(c){return parseInt(c.getAttribute('data-id'));});
+  var h='<div class="ov" id="mTraslConcMas" style="display:flex">'
+    +'<div class="mdl">'
+    +'<h3 style="color:#c8e6cd">&#127963; Trasladar '+chks.length+' especies a Concepción</h3>'
+    +'<div class="infoBanner" style="margin-bottom:14px">'
+    +'<span style="color:#8fb89a">Todas se asignarán a la misma dependencia de destino.</span></div>'
+    +'<div class="fg">'
+    +'<label style="font-size:.8rem;color:#8fb89a;font-weight:600">Dependencia de destino</label>'
+    +'<select id="traslConcDepMas" style="width:100%;margin-top:6px">'
+    +'<option value="">— Selecciona dependencia —</option>'+opts
+    +'</select></div>'
+    +'<div class="mBtns">'
+    +'<button class="btn rd" onclick="document.getElementById('mTraslConcMas').remove()">Cancelar</button>'
+    +'<button class="btn gn" onclick="confirmarTraslHistMas()">&#9989; Confirmar</button>'
+    +'</div></div></div>';
+  window._traslHistIds=ids;
+  document.body.insertAdjacentHTML('beforeend',h);
+}
+
+function confirmarTraslHistMas(){
+  var ds=document.getElementById('traslConcDepMas').value;
+  if(!ds){alert('Selecciona una dependencia de destino.');return;}
+  var did=parseInt(ds);
+  var dep=S.dep.find(function(d){return d.id===did;});
+  if(!dep){alert('Dependencia no encontrada.');return;}
+  if(!confirm('¿Trasladar '+(window._traslHistIds||[]).length+' especies a '+dep.nombre+'?'))return;
+  var cnt=0;
+  if(!S.esp)S.esp=[];
+  (window._traslHistIds||[]).forEach(function(id){
+    var r=(S.hist||[]).find(function(x){return x.id===id;});
+    if(r&&!r.trasl&&!r.traslHual&&!r.bajahist){_traslToConc(r,did);cnt++;}
+  });
+  document.getElementById('mTraslConcMas').remove();
+  alert('✅ '+cnt+' especies trasladadas a '+dep.nombre);
   sv();rHist();
 }
 
@@ -1879,17 +1909,63 @@ function bajasHistMas(){
   sv();rHist();
 }
 
-function _traslToConc(r){
+function _traslToConc(r,did){
   if(!S.esp)S.esp=[];
   var ya=S.esp.find(function(e){return e.cod===r.bcu||e.bcu===r.bcu;});
   if(!ya){
     S.esp.push({id:nid(S.esp),cod:r.bcu,bcu:r.bcu,nom:r.nom,marca:r.marca,modelo:r.modelo,mat:r.mat,
       ub:r.ub,serie:r.serie,valor:r.valor,fecalta:r.fecalta,carac:r.carac,
-      est:'A',histid:r.id,cid:null,fid:null,anio:new Date().getFullYear().toString(),obs:r.carac||''});
+      est:'A',histid:r.id,did:did||null,cid:null,fid:null,
+      unidad:'conc',anio:new Date().getFullYear().toString(),obs:r.carac||''});
+  } else {
+    if(did){ya.did=did;ya.unidad='conc';}
   }
   r.trasl=true;
   r.traslfec=new Date().toISOString().split('T')[0];
   log('→ Concepción: '+r.nom+' ('+r.bcu+')');
+}
+
+function oTraslToConcModal(r){
+  var dC=S.dep.filter(function(d){
+    return d.unidad!=='hual'&&!(d.nombre&&d.nombre.toUpperCase().indexOf('HUALP')===0);
+  });
+  var opts=dC.map(function(d){
+    return '<option value="'+d.id+'">'+esc(d.nombre)+'</option>';
+  }).join('');
+  var h='<div class="ov" id="mTraslConc" style="display:flex">'
+    +'<div class="mdl">'
+    +'<h3 style="color:#c8e6cd">&#127963; Trasladar a Concepción</h3>'
+    +'<div class="infoBanner" style="margin-bottom:14px">'
+    +'<strong>'+esc(r.nom)+'</strong><br>'
+    +'<span style="font-family:monospace;font-size:.8rem;color:#a8d5b5">BCU: '+esc(r.bcu)+'</span>'
+    +(r.serie?'<br><span style="color:#70a4d4;font-size:.77rem">Serie: '+esc(r.serie)+'</span>':'')
+    +'</div>'
+    +'<div class="fg">'
+    +'<label style="font-size:.8rem;color:#8fb89a;font-weight:600">&#127963; Dependencia de destino</label>'
+    +'<select id="traslConcDep" style="width:100%;margin-top:6px">'
+    +'<option value="">— Selecciona dependencia —</option>'+opts
+    +'</select></div>'
+    +'<div class="mBtns">'
+    +'<button class="btn rd" onclick="document.getElementById('mTraslConc').remove()">Cancelar</button>'
+    +'<button class="btn gn" onclick="confirmarTraslToConc('+r.id+')">&#9989; Confirmar</button>'
+    +'</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h);
+  setTimeout(function(){var el=document.getElementById('traslConcDep');if(el)el.focus();},80);
+}
+
+function confirmarTraslToConc(rid){
+  var r=S.hist?S.hist.find(function(x){return x.id===rid;}):null;
+  if(!r)return;
+  var ds=document.getElementById('traslConcDep').value;
+  if(!ds){alert('Selecciona una dependencia de destino.');return;}
+  var did=parseInt(ds);
+  var dep=S.dep.find(function(d){return d.id===did;});
+  if(!dep){alert('Dependencia no encontrada.');return;}
+  if(!confirm('¿Trasladar "'+r.nom+'" a\n'+dep.nombre+'?'))return;
+  _traslToConc(r,did);
+  document.getElementById('mTraslConc').remove();
+  sv();rHist();
+  alert('✅ '+r.nom+' trasladado a '+dep.nombre);
 }
 
 function _traslToHual(r){
