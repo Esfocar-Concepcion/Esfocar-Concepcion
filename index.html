@@ -1683,7 +1683,14 @@ function setEncHual(id){
   log('Encargado Hualpén '+id+': '+(d.encNom||''));
 }
 function abrirAgregarEspDepHual(did){
-  S.mEspDid=did;var depSel=document.getElementById('eDep');if(depSel)depSel.value=did;
+  S.mEspDid=did;
+  var depEl=document.getElementById('eDep');
+  if(depEl){
+    depEl.innerHTML=S.dep.map(function(d){
+      var u=d.unidad==='hual'?' 🚢':' 🏫';
+      return '<option value="'+d.id+'"'+(d.id===did?' selected':'')+'>'+esc(d.nombre)+u+'</option>';
+    }).join('');
+  }
   ['eCod','eNom','eBcu','eSerie','eObs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   var a=document.getElementById('eAnio');if(a)a.value=new Date().getFullYear();
   var c=document.getElementById('eCant');if(c)c.value=1;
